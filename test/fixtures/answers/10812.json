@@ -1,0 +1,66 @@
+{
+  "label": "10812",
+  "hash": "43f550db4fd1f0ca9dafee96",
+  "model": "jev-1.13.0",
+  "questionKeys": [
+    "reproduction:repro_quality",
+    "reproduction:explains_no_repro",
+    "priority:broken",
+    "priority:mainstream",
+    "priority:via_vite",
+    "priority:workaround",
+    "priority:regression",
+    "priority:argues_priority"
+  ],
+  "usage": {
+    "input_tokens": 3573,
+    "output_tokens": 168
+  },
+  "answers": {
+    "reproduction:repro_quality": {
+      "type": "score",
+      "score": 3,
+      "confidence": 1,
+      "legend": {
+        "0": "Only says something is broken or pastes an error, with no code, no steps, and no description of the project setup.",
+        "1": "Names the feature, option, or error and describes the project loosely, but gives no code and no steps a maintainer could follow.",
+        "2": "Gives either concrete steps or a code sample or config, but a maintainer would still have to guess the rest to run it.",
+        "3": "Gives everything needed to run it: the input code or config plus the command or steps, or a self-contained snippet with the observed and expected output, so a maintainer can reproduce it without guessing."
+      },
+      "probabilities": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 1
+      }
+    },
+    "reproduction:explains_no_repro": {
+      "type": "noul",
+      "noul": 0.98
+    },
+    "priority:broken": {
+      "type": "noul",
+      "noul": 0.23
+    },
+    "priority:mainstream": {
+      "type": "noul",
+      "noul": 0.24
+    },
+    "priority:via_vite": {
+      "type": "noul",
+      "noul": 0.03
+    },
+    "priority:workaround": {
+      "type": "noul",
+      "noul": 0.97
+    },
+    "priority:regression": {
+      "type": "noul",
+      "noul": 0.03
+    },
+    "priority:argues_priority": {
+      "type": "noul",
+      "noul": 0.11
+    }
+  }
+}

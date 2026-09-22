@@ -1,0 +1,31 @@
+# Drop into rolldown/rolldown as .github/workflows/triage.yml.
+#
+# Triggers on the `needs-triage` label rather than `opened`: the issue
+# templates add that label about a second after creation, so `opened` would run
+# twice, and re-adding the label is how a maintainer re-runs the bot. Only
+# people with triage permission can add labels, so no extra gate is needed.
+name: Issue Triage
+
+permissions: {}
+
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    if: github.repository == 'rolldown/rolldown' && github.event.label.name == 'needs-triage'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: rolldown/rolldown-triager@0000000000000000000000000000000000000000 # v0.1.0 — replace with the tagged commit SHA
+        with:
+          typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
+          # Shadow mode first; flip to apply after comparing suggestions with final labels.
+          modes: priority=suggest,reproduction=suggest

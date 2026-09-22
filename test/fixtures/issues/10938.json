@@ -1,0 +1,10 @@
+{
+  "number": 10938,
+  "title": "[Bug]: `binding-wasm32-wasi` errors `__napiBindingTarget is reserved by the generated binding loader, but the loaded binding already exports it`",
+  "body": "### Reproduction link or steps\n\nOpen either one:\n- https://vite.new\n- https://vitest.new\n\n\n### What is expected?\n\nNo errors should be visible. I think `1.2.8` was working just fine in https://github.com/vitest-dev/vitest-ecosystem-ci/actions/runs/34831949861/job/103937069120 last week. Now `1.2.9` is erroring https://github.com/vitest-dev/vitest-ecosystem-ci/actions/runs/35587970015/job/106295634475.\n\n### What is actually happening?\n\n```\n[rolldown] Downloading @rolldown/binding-wasm32-wasi@1.2.9 on WebContainer...\nPackages: +7\n+++++++\nProgress: resolved 7, reused 0, downloaded 7, added 7, done\n\ndependencies:\n+ @rolldown/binding-wasm32-wasi 1.2.9\n\nDone in 6.5s\n(node:14) ExperimentalWarning: WASI is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\nError: `__napiBindingTarget` is reserved by the generated binding loader, but the loaded binding already exports it. Rename the export, e.g. #[napi(js_name = \"...\")].\n    at __napiStampBindingTarget (file:///home/projects/vitejs-vite-ykyvwe7u/node_modules/rolldown/dist/shared/binding-BbrDfv1x.mjs:627:34)\n    at eval (file:///home/projects/vitejs-vite-ykyvwe7u/node_modules/rolldown/dist/shared/binding-BbrDfv1x.mjs:642:39)\n    at Module.eval (file:///home/projects/vitejs-vite-ykyvwe7u/node_modules/rolldown/dist/shared/binding-BbrDfv1x.mjs:25:49)\n    at eval (file:///home/projects/vitejs-vite-ykyvwe7u/node_modules/rolldown/dist/shared/parse-DltPb1DL.mjs:19:84) {\n  code: 'ERR_NAPI_BINDING_TARGET_CONFLICT'\n}\n\nNode.js v22.22.3\n```\n\n\n### System Info\n\n```Shell\nWebContainers\n```\n\n### Any additional comments?\n\n_No response_",
+  "typeName": "Bug",
+  "labels": [
+    "needs-triage"
+  ],
+  "htmlUrl": "https://github.com/rolldown/rolldown/issues/10938"
+}

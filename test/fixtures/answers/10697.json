@@ -1,0 +1,99 @@
+{
+  "label": "10697",
+  "hash": "dd477ea18e368c3685632529",
+  "model": "jev-1.13.0",
+  "questionKeys": [
+    "reproduction:repro_quality",
+    "reproduction:explains_no_repro",
+    "priority:broken",
+    "priority:mainstream",
+    "priority:via_vite",
+    "priority:workaround",
+    "priority:regression",
+    "priority:argues_priority",
+    "priority:framework_need",
+    "priority:usefulness",
+    "core:kind"
+  ],
+  "usage": {
+    "input_tokens": 3159,
+    "output_tokens": 248
+  },
+  "answers": {
+    "reproduction:repro_quality": {
+      "type": "score",
+      "score": 1.35,
+      "confidence": 0.64,
+      "legend": {
+        "0": "Only says something is broken or pastes an error, with no code, no steps, and no description of the project setup.",
+        "1": "Names the feature, option, or error and describes the project loosely, but gives no code and no steps a maintainer could follow.",
+        "2": "Gives either concrete steps or a code sample or config, but a maintainer would still have to guess the rest to run it.",
+        "3": "Gives everything needed to run it: the input code or config plus the command or steps, or a self-contained snippet with the observed and expected output, so a maintainer can reproduce it without guessing."
+      },
+      "probabilities": {
+        "0": 0,
+        "1": 0.66,
+        "2": 0.33,
+        "3": 0.01
+      }
+    },
+    "reproduction:explains_no_repro": {
+      "type": "noul",
+      "noul": 0.25
+    },
+    "priority:broken": {
+      "type": "noul",
+      "noul": 0.95
+    },
+    "priority:mainstream": {
+      "type": "noul",
+      "noul": 0.09
+    },
+    "priority:via_vite": {
+      "type": "noul",
+      "noul": 0.04
+    },
+    "priority:workaround": {
+      "type": "noul",
+      "noul": 0.11
+    },
+    "priority:regression": {
+      "type": "noul",
+      "noul": 0.04
+    },
+    "priority:argues_priority": {
+      "type": "noul",
+      "noul": 0.07
+    },
+    "priority:framework_need": {
+      "type": "noul",
+      "noul": 0.04
+    },
+    "priority:usefulness": {
+      "type": "score",
+      "score": 0.8,
+      "confidence": 0.38,
+      "legend": {
+        "0": "Serves one project's particular setup or an uncommon workflow; most users would never touch it.",
+        "1": "Serves a recognizable group: users of a particular framework, platform, output format, or plugin ecosystem, or people migrating from Rollup or another bundler.",
+        "2": "Would be used in most builds: defaults, the CLI or config surface most projects use, the plugin hooks most plugins use, or something users rely on today in Rollup or Vite."
+      },
+      "probabilities": {
+        "0": 0.31,
+        "1": 0.58,
+        "2": 0.11
+      }
+    },
+    "core:kind": {
+      "type": "choice",
+      "choice": "bug",
+      "confidence": 0.97,
+      "probabilities": {
+        "question": 0,
+        "feature": 0,
+        "bug": 0.98,
+        "other": 0.02
+      }
+    }
+  }
+}

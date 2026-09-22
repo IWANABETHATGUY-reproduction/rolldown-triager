@@ -1,0 +1,58 @@
+name: rolldown-triager
+description: First-pass triage of new issues with TypeSafe AI's Jev model. Priority label and reproduction check, extensible per check.
+author: rolldown
+branding:
+  icon: filter
+  color: orange
+
+inputs:
+  typesafe-api-key:
+    description: TypeSafe API key (store it as a repository secret).
+    required: true
+  token:
+    description: "GitHub token with issues: write. Labels added with the default token do not trigger other workflows; pass an App token if they should."
+    default: ${{ github.token }}
+  repository:
+    description: owner/repo of the issue.
+    default: ${{ github.repository }}
+  issue-number:
+    description: Issue to triage.
+    default: ${{ github.event.issue.number }}
+  checks:
+    description: "Comma-separated check ids to run, in order. Available: reproduction, priority, has-workaround."
+    default: reproduction,priority
+  modes:
+    description: "Per-check mode, check=apply|suggest|off, comma-separated. Unlisted checks use their own default (reproduction and priority apply, has-workaround suggests)."
+    default: ""
+  options:
+    description: 'JSON object of per-check options, e.g. {"priority":{"applyLabels":["p2","p3"]}}.'
+    default: "{}"
+  labels:
+    description: "JSON overrides for label names, keys p0 p1 p2 p3 needsTriage needsReproduction hasWorkaround. Defaults match rolldown/rolldown."
+    default: "{}"
+  thresholds:
+    description: JSON overrides for decision thresholds (see src/core/config.ts).
+    default: "{}"
+  comment:
+    description: "When to post the triage comment: always, when-acting, never."
+    default: always
+  model:
+    description: Jev model id. Pinned by default because thresholds are tuned per version.
+    default: jev-1.13.0
+  dry-run:
+    description: Compute and report, but write nothing.
+    default: "false"
+
+outputs:
+  report:
+    description: The full triage report as JSON.
+  priority:
+    description: Priority label applied or suggested, or empty.
+  needs-reproduction:
+    description: '"true" when the needs-reproduction label was applied or suggested.'
+  comment-url:
+    description: URL of the triage comment, if one was written.
+
+runs:
+  using: node24
+  main: dist/index.js

@@ -1,0 +1,34 @@
+{
+  "label": "10853",
+  "hash": "7ea656485321a4edea04d3f4",
+  "model": "jev-1.13.0",
+  "questionKeys": [
+    "priority:framework_need",
+    "priority:usefulness"
+  ],
+  "usage": {
+    "input_tokens": 1029,
+    "output_tokens": 41
+  },
+  "answers": {
+    "priority:framework_need": {
+      "type": "noul",
+      "noul": 0.04
+    },
+    "priority:usefulness": {
+      "type": "score",
+      "score": 1.16,
+      "confidence": 0.39,
+      "legend": {
+        "0": "Serves one project's particular setup or an uncommon workflow; most users would never touch it.",
+        "1": "Serves a recognizable group: users of a particular framework, platform, output format, or plugin ecosystem, or people migrating from Rollup or another bundler.",
+        "2": "Would be used in most builds: defaults, the CLI or config surface most projects use, the plugin hooks most plugins use, or something users rely on today in Rollup or Vite."
+      },
+      "probabilities": {
+        "0": 0.12,
+        "1": 0.6,
+        "2": 0.28
+      }
+    }
+  }
+}

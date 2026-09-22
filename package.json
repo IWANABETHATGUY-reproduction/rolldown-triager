@@ -1,0 +1,30 @@
+{
+  "name": "rolldown-triager",
+  "private": true,
+  "description": "GitHub Action that triages rolldown issues with TypeSafe's Jev model",
+  "type": "module",
+  "scripts": {
+    "build": "node build.ts",
+    "check:dist": "pnpm build && git diff --exit-code -- dist",
+    "cli": "node --env-file-if-exists=.env src/cli.ts",
+    "fmt": "oxlint . --fix && oxfmt .",
+    "lint": "oxlint . && oxfmt --check .",
+    "test": "vitest run",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
+    "rolldown": "^1.2.9",
+    "vitest": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "packageManager": "pnpm@10.28.2"
+}

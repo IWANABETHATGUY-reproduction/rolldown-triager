@@ -1,0 +1,37 @@
+# Runs the committed bundle against a real issue in dry-run mode, so the
+# Action can be exercised end to end without touching the issue.
+name: Self-test
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: owner/repo
+        default: rolldown/rolldown
+      issue-number:
+        description: Issue to triage (dry run)
+        required: true
+      modes:
+        description: Per-check modes
+        default: ""
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./
+        with:
+          typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
+          repository: ${{ inputs.repository }}
+          issue-number: ${{ inputs.issue-number }}
+          modes: ${{ inputs.modes }}
+          dry-run: "true"

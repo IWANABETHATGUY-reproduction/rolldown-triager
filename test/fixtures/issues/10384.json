@@ -1,0 +1,10 @@
+{
+  "number": 10384,
+  "title": "[Panic]: rolldown-worker bug",
+  "body": "### Panic message\n\n```Shell\nthread 'rolldown-worker' (43204) panicked at crates\\rolldown_plugin_vite_reporter\\src\\utils.rs:100:82:\nend byte index 100 is not a char boundary; it is inside '推' (bytes 98..101 of string)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n```\n\n### Reproduction\n\nvite build ，pnpm run build ,excuted\n\n### System Info\n\n```Shell\nwin11\n```\n\n### Additional context\n\n_No response_",
+  "typeName": "Bug",
+  "labels": [
+    "needs-reproduction"
+  ],
+  "htmlUrl": "https://github.com/rolldown/rolldown/issues/10384"
+}
