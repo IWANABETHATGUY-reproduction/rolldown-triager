@@ -52,6 +52,13 @@ capped sections. Labels, author, comments, dates, and the link list are never se
 with irrelevant state, and issue bodies are attacker-controlled (a report saying "P0 blocker" only trips
 `argues_priority`, which forces suggest).
 
+**The reproduction check turns on runnability, not writing quality.** `runnable` asks whether a maintainer
+could run the report as written; `self_evident` asks whether they could start from its evidence anyway
+(quoted type declarations, published metadata, a test in this repo) — that axis is what keeps precision at
+1.00, and every false positive before it existed was a report of that shape. A body under 80 characters with
+no link is labelled in code, without the model. Re-tune with `pnpm cli run --json` over a labelled set and
+compare against `.cache/compare/`; do not tune `repro_quality`, which is now only a secondary gate.
+
 **Kind resolution.** When kind is unknown, priority asks both branches and reproduction asks its rubric;
 `decide` uses the kind the model settled on. Still one request.
 

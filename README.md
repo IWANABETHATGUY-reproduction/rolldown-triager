@@ -22,7 +22,7 @@ Checks shipped:
 
 | check                   | asks                                                                                                                                                                                    | outcome                                                                                                                                                          |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reproduction` (gating) | nothing when a runnable link (REPL, StackBlitz, CodeSandbox, vite.new, gist, GitHub repo) is found in code; otherwise a 4-level `repro_quality` score and an `explains_no_repro` yes/no | adds `needs-reproduction` only when the description is clearly inadequate, with confidence, and the reporter gives no concrete reason a live repro is impossible |
+| `reproduction` (gating) | nothing when a runnable link (REPL, StackBlitz, CodeSandbox, vite.new, gist, GitHub repo) is found in code, or when the body is essentially empty; otherwise `runnable`, `self_evident`, a 4-level `repro_quality` score, and `explains_no_repro` | adds `needs-reproduction` when there is nothing a maintainer could run, the report carries no evidence they could start from, and the reporter gives no concrete reason a live repro is impossible |
 | `priority`              | bugs: unusable? via Vite? regression? common setup? workaround? argues its own priority? — features: named framework blocked? usefulness (3 levels)                                     | `p1` / `p2` / `p3`, or abstains when an axis on the taken path is in the unsure band; never `p0`                                                                 |
 | `has-workaround`        | reuses the `workaround` question                                                                                                                                                        | `has workaround` (suggest-only by default; exists to show how small a check is)                                                                                  |
 
@@ -70,8 +70,13 @@ the "please add a reproduction" request; pass a GitHub App token as `token` if d
 bot and compares with the labels maintainers ended up with (95 issues on 2026-09-22; answers cached under
 `.cache/eval`, so re-running with different thresholds or decision code is free):
 
-- **Reproduction** (69 bugs, 16 ever `needs-reproduction`): precision 1.00 (3/3), recall 0.19. The three it
-  labels are near-empty panic reports; it abstains on the middle of the scale.
+- **Reproduction**, re-measured on the 100 most recent issues (2026-09-23), against the union of an
+  independent read of every issue and the labels maintainers actually applied: **precision 1.00, recall
+  0.94** — it flags 15 of 100 and catches all 6 the maintainers labelled. Against those 6 alone precision is
+  0.40; the other 9 are issues with no reproduction that maintainers closed or fixed rather than chased, so
+  read 0.40 as a floor. The decision rests on `runnable` (is there anything to run) rather than on how well
+  the report is written: the previous prose-quality rubric scored unrunnable reports 1.1-2.6 out of 3 and
+  fired **zero** times on the same 100 issues.
 - **Priority, bugs** (54): agrees with maintainers on 57% of the issues it decides, decides 81%; p1 precision
   12/21. **Features** (25): 40%. That is why `priority` defaults to `suggest`.
 
