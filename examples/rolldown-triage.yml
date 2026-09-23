@@ -24,7 +24,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: IWANABETHATGUY-reproduction/rolldown-triager@0000000000000000000000000000000000000000 # v0.1.0 — replace with the tagged commit SHA
+      - uses: IWANABETHATGUY-reproduction/rolldown-triager@c8dadbdf3caa73ac69749570043f84fb4180e923 # v0.1.0
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
           # Shadow mode first; flip to apply after comparing suggestions with final labels.
