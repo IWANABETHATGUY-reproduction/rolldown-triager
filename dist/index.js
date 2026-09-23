@@ -1261,6 +1261,7 @@ const MODES = /* @__PURE__ */ new Set([
 const COMMENT_MODES = /* @__PURE__ */ new Set([
 	"always",
 	"when-acting",
+	"when-needed",
 	"never"
 ]);
 var ConfigError = class extends Error {
@@ -1305,8 +1306,8 @@ function resolveConfig(raw = {}) {
 		thresholds[key] = value;
 	}
 	if (thresholds.noulNo >= thresholds.noulYes) throw new ConfigError("`thresholds.noulNo` must be below `thresholds.noulYes`");
-	const comment = raw.comment?.trim() || "always";
-	if (!COMMENT_MODES.has(comment)) throw new ConfigError(`\`comment\` must be one of always, when-acting, never`);
+	const comment = raw.comment?.trim() || "when-needed";
+	if (!COMMENT_MODES.has(comment)) throw new ConfigError(`\`comment\` must be one of always, when-acting, when-needed, never`);
 	return {
 		labels,
 		checks,
@@ -2251,8 +2252,10 @@ async function applyReport(report, config, gh, options) {
 		labelsChanged: false,
 		skipped: "already-triaged"
 	};
-	const acted = report.plan.add.length > 0 || report.results.some((r) => r.effective === "suggested" && r.labels.length > 0);
-	const comment = options.commentMode === "always" || options.commentMode === "when-acting" && acted ? renderComment(report, config.labels, options.meta) : void 0;
+	const suggested = report.results.some((r) => r.effective === "suggested" && r.labels.length > 0);
+	const acted = report.plan.add.length > 0 || suggested;
+	const needed = suggested || report.plan.add.includes(config.labels.needsReproduction);
+	const comment = options.commentMode === "always" || options.commentMode === "when-acting" && acted || options.commentMode === "when-needed" && needed ? renderComment(report, config.labels, options.meta) : void 0;
 	if (options.dryRun) return {
 		labelsChanged: false,
 		...comment ? { comment } : {},

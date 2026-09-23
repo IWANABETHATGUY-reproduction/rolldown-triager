@@ -34,8 +34,12 @@ inputs:
     description: JSON overrides for decision thresholds (see src/core/config.ts).
     default: "{}"
   comment:
-    description: "When to post the triage comment: always, when-acting, never."
-    default: always
+    description: >-
+      When to post the triage comment: always, when-acting, when-needed, never.
+      The default, when-needed, stays silent when the labels already say
+      everything, and comments only to carry a suggestion or a request for a
+      reproduction.
+    default: when-needed
   model:
     description: Jev model id. Pinned by default because thresholds are tuned per version.
     default: jev-1.13.0

@@ -102,7 +102,7 @@ export const PRIORITY_SLOTS: readonly PrioritySlot[] = ["p0", "p1", "p2", "p3"];
 
 export type LabelNames = Record<LabelSlot, string>;
 export type Mode = "apply" | "suggest" | "off";
-export type CommentMode = "always" | "when-acting" | "never";
+export type CommentMode = "always" | "when-acting" | "when-needed" | "never";
 
 export interface Thresholds {
   /** A Noul at or above this is "yes"; at or below `noulNo` is "no"; between is unsure. */

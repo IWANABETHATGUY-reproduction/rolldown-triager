@@ -210,6 +210,41 @@ describe("applyReport", () => {
     expect(comments).toHaveLength(1);
   });
 
+  it("when-needed stays silent once the labels say everything", async () => {
+    // Priority applied, nothing suggested, no reproduction request: the `p1`
+    // label is the whole message, so a comment would only be noise.
+    const applied = await report();
+    const { gh, calls, comments } = fakeGitHub(
+      makeIssue({ number: 10938, labels: ["needs-triage"] }),
+    );
+    const out = await applyReport(applied, config, gh, {
+      dryRun: false,
+      commentMode: "when-needed",
+    });
+    expect(out.labelsChanged).toBe(true);
+    expect(out.comment).toBeUndefined();
+    expect(calls).not.toContain("createComment");
+    expect(comments).toHaveLength(0);
+  });
+
+  it("when-needed still carries a reproduction request", async () => {
+    // Nothing else to say, but rolldown's comment bot never fires on our label,
+    // so this comment is the only thing that asks the reporter for a repro.
+    const applied = await report();
+    const reproOnly: Report = {
+      ...applied,
+      plan: { add: ["needs-reproduction"], remove: [] },
+      results: applied.results.map((r) => ({ ...r, effective: "applied" as const, labels: [] })),
+    };
+    const { gh, calls } = fakeGitHub(makeIssue({ number: 10938, labels: ["needs-triage"] }));
+    const out = await applyReport(reproOnly, config, gh, {
+      dryRun: false,
+      commentMode: "when-needed",
+    });
+    expect(out.comment).toBeDefined();
+    expect(calls).toContain("createComment");
+  });
+
   it("respects the comment mode", async () => {
     const quiet = await replay(10812); // nothing applied, one suggestion
     const suggestion = {
@@ -219,7 +254,10 @@ describe("applyReport", () => {
     for (const [mode, report_, expectComment] of [
       ["when-acting", quiet, true],
       ["when-acting", suggestion, false],
+      ["when-needed", quiet, true],
+      ["when-needed", suggestion, false],
       ["never", quiet, false],
+      ["always", suggestion, true],
     ] as const) {
       const { gh, calls } = fakeGitHub(makeIssue({ number: 10812 }));
       const out = await applyReport(report_, config, gh, {

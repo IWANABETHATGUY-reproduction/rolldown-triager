@@ -57,7 +57,8 @@ Re-run on an issue by re-adding `needs-triage`. Manual labels always win: the bo
 Inputs (all optional except the key): `token`, `repository`, `issue-number`, `checks` (default
 `reproduction,priority`), `modes` (`check=apply|suggest|off`), `options` (JSON per check, e.g.
 `{"priority":{"applyLabels":["p2","p3"]}}`), `labels` (JSON overrides for label names), `thresholds` (JSON),
-`comment` (`always` / `when-acting` / `never`), `model` (pinned `jev-1.13.0`), `dry-run`. Outputs: `report`
+`comment` (`when-needed` by default / `always` / `when-acting` / `never`), `model` (pinned `jev-1.13.0`),
+`dry-run`. Outputs: `report`
 (JSON), `priority`, `needs-reproduction`, `comment-url`. See `action.yml`.
 
 Labels added with the default `GITHUB_TOKEN` do not trigger other workflows, so the bot's own comment carries

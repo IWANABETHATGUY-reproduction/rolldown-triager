@@ -208,11 +208,18 @@ export async function applyReport(
   if (report.shortCircuit === "already-triaged")
     return { labelsChanged: false, skipped: "already-triaged" };
 
-  const acted =
-    report.plan.add.length > 0 ||
-    report.results.some((r) => r.effective === "suggested" && r.labels.length > 0);
+  const suggested = report.results.some((r) => r.effective === "suggested" && r.labels.length > 0);
+  const acted = report.plan.add.length > 0 || suggested;
+  // A comment only earns its place when it says something the labels cannot.
+  // An applied `p2` explains itself; a suggestion has nowhere else to go, and a
+  // `needs-reproduction` has to carry the request for a reproduction itself,
+  // because rolldown's comment bot never fires on our label — GITHUB_TOKEN
+  // writes do not trigger workflows.
+  const needed = suggested || report.plan.add.includes(config.labels.needsReproduction);
   const shouldComment =
-    options.commentMode === "always" || (options.commentMode === "when-acting" && acted);
+    options.commentMode === "always" ||
+    (options.commentMode === "when-acting" && acted) ||
+    (options.commentMode === "when-needed" && needed);
   const comment = shouldComment ? renderComment(report, config.labels, options.meta) : undefined;
 
   if (options.dryRun)

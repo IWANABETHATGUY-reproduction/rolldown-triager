@@ -47,7 +47,7 @@ export const DEFAULT_MODES: Record<string, Mode> = {
 };
 
 const MODES = new Set<string>(["apply", "suggest", "off"]);
-const COMMENT_MODES = new Set<string>(["always", "when-acting", "never"]);
+const COMMENT_MODES = new Set<string>(["always", "when-acting", "when-needed", "never"]);
 
 export class ConfigError extends Error {
   override name = "ConfigError";
@@ -128,9 +128,9 @@ export function resolveConfig(raw: RawConfig = {}): ResolvedConfig {
     throw new ConfigError("`thresholds.noulNo` must be below `thresholds.noulYes`");
   }
 
-  const comment = raw.comment?.trim() || "always";
+  const comment = raw.comment?.trim() || "when-needed";
   if (!COMMENT_MODES.has(comment)) {
-    throw new ConfigError(`\`comment\` must be one of always, when-acting, never`);
+    throw new ConfigError(`\`comment\` must be one of always, when-acting, when-needed, never`);
   }
 
   return {
