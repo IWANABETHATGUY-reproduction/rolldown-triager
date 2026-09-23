@@ -21,6 +21,18 @@ function describe(link: ReproLink): string {
   }
 }
 
+/** Characters of real prose across every section the model would be shown. */
+function contentLength(ctx: { state: { issue: { sections: Record<string, string> } } }): number {
+  return Object.values(ctx.state.issue.sections).join(" ").replace(/\s+/g, " ").trim().length;
+}
+
+/** No runnable link, nothing in the template, and less than a sentence of prose. */
+function isEmptyReport(
+  ctx: Parameters<typeof contentLength>[0] & { flags: { runnableLinks: unknown[] } },
+): boolean {
+  return ctx.flags.runnableLinks.length === 0 && contentLength(ctx) < 80;
+}
+
 /**
  * Gating: when this fails or is unsure, no other check may apply labels, because
  * the workflow's first question is "does it have a proper reproduction?".
@@ -38,6 +50,19 @@ export const reproduction = defineCheck({
   },
 
   decide(answers, ctx) {
+    // An issue with no substance needs a reproduction whatever it turns out to
+    // be about, and the model never gets a useful read on it. Deciding this in
+    // code also rescues the case where kind is unknown *because* the body is
+    // empty, which used to abstain before the rubric was even asked.
+    if (isEmptyReport(ctx)) {
+      return {
+        status: "decided",
+        add: ["needsReproduction"],
+        note: "the report has no reproduction and almost no content",
+        gate: "fail",
+      };
+    }
+
     switch (ctx.kind) {
       case "feature":
         return { status: "skipped", reason: "feature request" };
@@ -66,27 +91,35 @@ export const reproduction = defineCheck({
     }
 
     const t = ctx.config.thresholds;
+    const canRun = answers.noul("runnable");
+    const selfEvident = answers.noul("self_evident");
     const quality = answers.score("repro_quality");
     const explains = answers.noul("explains_no_repro");
-    if (!quality)
-      return { status: "abstained", note: "no answer for repro_quality", gate: "unsure" };
+    if (canRun === undefined)
+      return { status: "abstained", note: "no answer for runnable", gate: "unsure" };
 
-    const evidence: Evidence = { steps: `${quality.score.toFixed(1)}/${quality.top}` };
+    const evidence: Evidence = { runnable: Number(canRun.toFixed(2)) };
+    if (selfEvident !== undefined) evidence["self-evident"] = Number(selfEvident.toFixed(2));
+    if (quality) evidence.steps = `${quality.score.toFixed(1)}/${quality.top}`;
     if (explains !== undefined) evidence["explains no link"] = Number(explains.toFixed(2));
     const missingFields =
       ctx.parsed.requiredMissing.length > 0
         ? `; template fields missing: ${ctx.parsed.requiredMissing.join(", ")}`
         : "";
 
-    if (quality.score >= t.reproOk && quality.confidence >= t.reproConfidence) {
+    // Runnable settles it on its own: there is something to run, so there is
+    // nothing to ask the reporter for.
+    if (canRun >= t.reproRunnableYes) {
       return {
         status: "decided",
         add: [],
-        note: "no link, but the steps look complete",
+        note: "no link, but the report is runnable as written",
         evidence,
         gate: "pass",
       };
     }
+    // The escape hatch outranks the label: a reporter who explains why a live
+    // repro is impossible should get a human, not a form letter.
     if ((explains ?? 0) >= t.noulYes) {
       return {
         status: "abstained",
@@ -95,7 +128,20 @@ export const reproduction = defineCheck({
         gate: "unsure",
       };
     }
-    if (quality.score <= t.reproLow && quality.confidence >= t.reproConfidence) {
+    // A report can be unrunnable and still need nothing from its author: it
+    // quotes the conflicting declarations, names a failing test in this repo,
+    // links the published metadata. Asking those reporters for a reproduction
+    // is the main way this check wastes a maintainer's credibility.
+    if ((selfEvident ?? 0) >= t.reproSelfEvident) {
+      return {
+        status: "abstained",
+        note: "nothing to run, but the report carries its own evidence",
+        evidence,
+        gate: "unsure",
+      };
+    }
+    // Not runnable, and the detail that is there does not reach the bar either.
+    if (canRun <= t.reproRunnableNo && (quality?.score ?? 0) <= t.reproLow) {
       return {
         status: "decided",
         add: ["needsReproduction"],
@@ -106,7 +152,7 @@ export const reproduction = defineCheck({
     }
     return {
       status: "abstained",
-      note: `no link and the steps are hard to judge${missingFields}`,
+      note: `no link and the report is hard to judge${missingFields}`,
       evidence,
       gate: "unsure",
     };

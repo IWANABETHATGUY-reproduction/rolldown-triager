@@ -1,8 +1,10 @@
 {
   "label": "10384",
-  "hash": "9415c1c96ad794a08176b450",
+  "hash": "e8c598fb1e0d371047e8c19b",
   "model": "jev-1.13.0",
   "questionKeys": [
+    "reproduction:runnable",
+    "reproduction:self_evident",
     "reproduction:repro_quality",
     "reproduction:explains_no_repro",
     "priority:broken",
@@ -13,14 +15,22 @@
     "priority:argues_priority"
   ],
   "usage": {
-    "input_tokens": 2231,
-    "output_tokens": 168
+    "input_tokens": 2883,
+    "output_tokens": 213
   },
   "answers": {
+    "reproduction:runnable": {
+      "type": "noul",
+      "noul": 0.04
+    },
+    "reproduction:self_evident": {
+      "type": "noul",
+      "noul": 0.79
+    },
     "reproduction:repro_quality": {
       "type": "score",
-      "score": 1.12,
-      "confidence": 0.11,
+      "score": 1.54,
+      "confidence": 0.54,
       "legend": {
         "0": "Only says something is broken or pastes an error, with no code, no steps, and no description of the project setup.",
         "1": "Names the feature, option, or error and describes the project loosely, but gives no code and no steps a maintainer could follow.",
@@ -28,9 +38,9 @@
         "3": "Gives everything needed to run it: the input code or config plus the command or steps, or a self-contained snippet with the observed and expected output, so a maintainer can reproduce it without guessing."
       },
       "probabilities": {
-        "0": 0.31,
-        "1": 0.26,
-        "2": 0.43,
+        "0": 0.12,
+        "1": 0.21,
+        "2": 0.67,
         "3": 0
       }
     },
@@ -52,7 +62,7 @@
     },
     "priority:workaround": {
       "type": "noul",
-      "noul": 0.06
+      "noul": 0.05
     },
     "priority:regression": {
       "type": "noul",

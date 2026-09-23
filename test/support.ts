@@ -79,7 +79,16 @@ export function ctx<O>(
   return {
     issue: issue(),
     parsed: parsed(),
-    state: { issue: { title: "t", kind: over.kind ?? "bug", template: "bug", sections: {} } },
+    // Enough prose that the default ctx is not treated as an empty report; the
+    // empty case is exercised explicitly in reproduction.test.ts.
+    state: {
+      issue: {
+        title: "t",
+        kind: over.kind ?? "bug",
+        template: "bug",
+        sections: { reproduction: "a".repeat(200) },
+      },
+    },
     flags: flags(),
     kind: over.kind ?? "bug",
     kindSource: "type",

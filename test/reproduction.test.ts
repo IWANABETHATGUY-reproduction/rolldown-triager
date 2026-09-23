@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { reproduction } from "../src/checks/reproduction.ts";
-import type { ReproLink } from "../src/core/types.ts";
+import type { Ctx, ReproLink } from "../src/core/types.ts";
 import { answers, ctx, flags, parsed, scoreAnswer } from "./support.ts";
 
 const R = "reproduction";
@@ -12,15 +12,22 @@ const repl: ReproLink = {
   detail: "3 files, rolldown latest",
 };
 
+/** The three model axes, at values that on their own produce the label. */
+const flagging = { runnable: 0.05, self_evident: 0.1, explains_no_repro: 0.1 };
+
+const empty = (): Ctx =>
+  ctx({ state: { issue: { title: "t", kind: "bug", template: "none", sections: {} } } });
+
 describe("reproduction.questions", () => {
   it("asks nothing when a runnable link exists, nothing for features, the rubric otherwise", () => {
     expect(reproduction.questions(ctx({ flags: flags({ runnableLinks: [repl] }) }))).toEqual({});
     expect(reproduction.questions(ctx({ kind: "feature" }))).toBeNull();
     expect(Object.keys(reproduction.questions(ctx()) ?? {})).toEqual([
+      "runnable",
+      "self_evident",
       "repro_quality",
       "explains_no_repro",
     ]);
-    expect(Object.keys(reproduction.questions(ctx({ kind: "unknown" })) ?? {})).toHaveLength(2);
   });
 });
 
@@ -40,6 +47,25 @@ describe("reproduction.decide", () => {
     expect(reproduction.decide(answers(R, {}), ctx({ flags: two }))).toMatchObject({
       note: "GitHub repository link (+1 more)",
     });
+  });
+
+  it("labels a report with no link and almost no content, without asking the model", () => {
+    expect(reproduction.decide(answers(R, {}), empty())).toMatchObject({
+      status: "decided",
+      add: ["needsReproduction"],
+      gate: "fail",
+    });
+    // Even when the kind never resolved — an empty body is why kind is unknown.
+    expect(reproduction.decide(answers(R, {}), ctx({ ...empty(), kind: "unknown" }))).toMatchObject(
+      { add: ["needsReproduction"] },
+    );
+    // A link is content, so it is not an empty report.
+    expect(
+      reproduction.decide(
+        answers(R, {}),
+        ctx({ ...empty(), flags: flags({ runnableLinks: [repl] }) }),
+      ),
+    ).toMatchObject({ status: "decided", gate: "pass" });
   });
 
   it("skips features/tasks/questions and is unsure for unknown kinds", () => {
@@ -65,58 +91,52 @@ describe("reproduction.decide", () => {
     });
   });
 
-  it("passes when the steps look complete with confidence", () => {
+  it("passes when the report is runnable as written, whatever the prose score", () => {
     const v = reproduction.decide(
-      answers(R, { repro_quality: scoreAnswer(2.8, 0.9), explains_no_repro: 0.1 }),
+      answers(R, { ...flagging, runnable: 0.9, repro_quality: scoreAnswer(1.2, 0.4) }),
       ctx(),
     );
     expect(v).toMatchObject({
       status: "decided",
       add: [],
       gate: "pass",
-      evidence: { steps: "2.8/3", "explains no link": 0.1 },
+      evidence: { runnable: 0.9 },
     });
   });
 
-  it("adds needs-reproduction only when clearly inadequate, confident, and unexplained", () => {
-    expect(
-      reproduction.decide(
-        answers(R, { repro_quality: scoreAnswer(0.4, 0.9), explains_no_repro: 0.1 }),
-        ctx(),
-      ),
-    ).toMatchObject({
+  it("adds needs-reproduction when nothing is runnable and nothing is self-evident", () => {
+    expect(reproduction.decide(answers(R, flagging), ctx())).toMatchObject({
       status: "decided",
       add: ["needsReproduction"],
       gate: "fail",
+      evidence: { runnable: 0.05, "self-evident": 0.1 },
     });
-    // explained → human
+  });
+
+  it("does not ask for a reproduction when the report carries its own evidence", () => {
+    // The 1.00-precision case: unrunnable, but it quotes the conflicting types,
+    // links the published metadata, or names a failing test in this repo.
     expect(
-      reproduction.decide(
-        answers(R, { repro_quality: scoreAnswer(0.4, 0.9), explains_no_repro: 0.9 }),
-        ctx(),
-      ),
+      reproduction.decide(answers(R, { ...flagging, self_evident: 0.9 }), ctx()),
+    ).toMatchObject({
+      status: "abstained",
+      gate: "unsure",
+      note: expect.stringContaining("its own evidence"),
+    });
+  });
+
+  it("leaves an explained absence to a human", () => {
+    expect(
+      reproduction.decide(answers(R, { ...flagging, explains_no_repro: 0.9 }), ctx()),
     ).toMatchObject({
       status: "abstained",
       gate: "unsure",
       note: expect.stringContaining("explains why"),
     });
-    // not confident → unsure
-    expect(
-      reproduction.decide(
-        answers(R, { repro_quality: scoreAnswer(0.4, 0.5), explains_no_repro: 0.1 }),
-        ctx(),
-      ),
-    ).toMatchObject({
-      status: "abstained",
-      gate: "unsure",
-    });
-    // middle of the scale → unsure
-    expect(
-      reproduction.decide(
-        answers(R, { repro_quality: scoreAnswer(1.6, 0.9), explains_no_repro: 0.1 }),
-        ctx(),
-      ),
-    ).toMatchObject({
+  });
+
+  it("is unsure in the middle of the runnable band", () => {
+    expect(reproduction.decide(answers(R, { ...flagging, runnable: 0.5 }), ctx())).toMatchObject({
       status: "abstained",
       gate: "unsure",
     });
@@ -124,7 +144,7 @@ describe("reproduction.decide", () => {
 
   it("mentions missing template fields", () => {
     const v = reproduction.decide(
-      answers(R, { repro_quality: scoreAnswer(0.2, 0.9), explains_no_repro: 0 }),
+      answers(R, flagging),
       ctx({ parsed: parsed({ requiredMissing: ["system_info"] }) }),
     );
     expect(v).toMatchObject({

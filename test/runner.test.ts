@@ -51,7 +51,7 @@ describe("runTriage on recorded fixtures (offline)", () => {
     expect(r.results[0]?.verdict).toMatchObject({
       status: "decided",
       gate: "pass",
-      note: "no link, but the steps look complete",
+      note: "no link, but the report is runnable as written",
     });
     expect(r.results[1]).toMatchObject({
       effective: "suggested",
@@ -70,19 +70,33 @@ describe("runTriage on recorded fixtures (offline)", () => {
 
   it("#10697: untyped, no template — kind comes from the model in the same request", async () => {
     const r = await replay(10697);
-    expect(r.questionsAsked).toBe(11); // 6 bug + 2 feature + 2 repro + core:kind
+    expect(r.questionsAsked).toBe(13); // 6 bug + 2 feature + 4 repro + core:kind
     expect(r.kindSource).toBe("model");
     expect(r.kind).toBe("bug");
     expect(r.kindConfidence).toBeGreaterThan(0);
   });
 
-  it("#10384/#10464: thin panic reports stay in the unsure band rather than being auto-closed", async () => {
-    for (const n of [10384, 10464]) {
-      const r = await replay(n);
-      expect(r.results[0]).toMatchObject({ effective: "abstained" });
-      expect(r.results[0]?.verdict).toMatchObject({ gate: "unsure" });
+  it("#10384/#10464: a panic that points at its own source abstains; one with only stripped addresses is asked for a repro", async () => {
+    // Both are thin panic reports with no reproduction. They are separated by
+    // `self_evident`: #10384's panic names a source location a maintainer can
+    // open, while #10464 is an empty title plus a backtrace of `<unknown>`
+    // addresses, which is nothing anyone can act on.
+    const evident = await replay(10384);
+    expect(evident.results[0]).toMatchObject({ effective: "abstained" });
+    expect(evident.results[0]?.verdict).toMatchObject({ gate: "unsure" });
+    expect(evident.plan.add).toEqual([]);
+
+    const opaque = await replay(10464);
+    expect(opaque.results[0]).toMatchObject({ effective: "applied" });
+    expect(opaque.results[0]?.verdict).toMatchObject({ gate: "fail" });
+    expect(opaque.plan.add).toEqual(["needs-reproduction"]);
+
+    // Either way the gate holds priority back.
+    for (const r of [evident, opaque]) {
+      // The check still names p1; the gate is what keeps it out of the plan.
       expect(r.results[1]?.downgradedBecause).toContain("reproduction gate not passed");
-      expect(r.plan.add).toEqual([]);
+      expect(r.results[1]?.effective).toBe("suggested");
+      expect(r.plan.add).not.toContain("p1: important");
     }
   });
 

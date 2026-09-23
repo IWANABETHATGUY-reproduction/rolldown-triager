@@ -110,10 +110,17 @@ export interface Thresholds {
   noulNo: number;
   /** Minimum Choice/Score confidence to act on the answer. */
   scoreConfidence: number;
-  /** `repro_quality` score at or below this is "no usable reproduction". */
+  /** `runnable` at or above this means the report can be run as written. */
+  reproRunnableYes: number;
+  /** `runnable` at or below this makes the issue a candidate for the label. */
+  reproRunnableNo: number;
+  /** `self_evident` at or above this blocks the label: nothing to ask the reporter for. */
+  reproSelfEvident: number;
+  /** Second gate on the label: `repro_quality` must also be at or below this. */
   reproLow: number;
-  /** `repro_quality` score at or above this is "reproducible from the text". */
+  /** @deprecated superseded by `reproRunnableYes`; still accepted as an input. */
   reproOk: number;
+  /** @deprecated the `runnable` Noul carries no confidence; kept for the sweep. */
   reproConfidence: number;
   /** `usefulness` score at or above this maps a feature to p2 instead of p3. */
   usefulnessP2: number;

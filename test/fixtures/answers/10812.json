@@ -1,8 +1,10 @@
 {
   "label": "10812",
-  "hash": "43f550db4fd1f0ca9dafee96",
+  "hash": "478cf0767c9f78d6aadcc186",
   "model": "jev-1.13.0",
   "questionKeys": [
+    "reproduction:runnable",
+    "reproduction:self_evident",
     "reproduction:repro_quality",
     "reproduction:explains_no_repro",
     "priority:broken",
@@ -13,10 +15,18 @@
     "priority:argues_priority"
   ],
   "usage": {
-    "input_tokens": 3573,
-    "output_tokens": 168
+    "input_tokens": 4225,
+    "output_tokens": 213
   },
   "answers": {
+    "reproduction:runnable": {
+      "type": "noul",
+      "noul": 0.78
+    },
+    "reproduction:self_evident": {
+      "type": "noul",
+      "noul": 0.94
+    },
     "reproduction:repro_quality": {
       "type": "score",
       "score": 3,
@@ -40,11 +50,11 @@
     },
     "priority:broken": {
       "type": "noul",
-      "noul": 0.23
+      "noul": 0.22
     },
     "priority:mainstream": {
       "type": "noul",
-      "noul": 0.24
+      "noul": 0.25
     },
     "priority:via_vite": {
       "type": "noul",
@@ -60,7 +70,7 @@
     },
     "priority:argues_priority": {
       "type": "noul",
-      "noul": 0.11
+      "noul": 0.1
     }
   }
 }
