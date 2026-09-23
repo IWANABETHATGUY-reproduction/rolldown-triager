@@ -3,6 +3,7 @@ import { appendFileSync } from "node:fs";
 import { checks } from "./checks/index.ts";
 import { renderSummary } from "./core/comment.ts";
 import { ConfigError, resolveConfig } from "./core/config.ts";
+import { formatError } from "./core/errors.ts";
 import { createGitHubClient } from "./core/github.ts";
 import { createTypeSafeJev } from "./core/jev.ts";
 import { applyReport, runTriage } from "./core/runner.ts";
@@ -114,7 +115,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.log(`::error::${message}`);
+  console.log(`::error::${formatError(error)}`);
   process.exitCode = 1;
 });

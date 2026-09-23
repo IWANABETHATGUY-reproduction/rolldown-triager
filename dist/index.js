@@ -1321,6 +1321,36 @@ function resolveConfig(raw = {}) {
 	};
 }
 //#endregion
+//#region src/core/errors.ts
+const MAX_LENGTH = 400;
+const HTML_RE = /<(?:!doctype|html)\b/i;
+const STATUS_RE = /^\s*(\d{3})\b/;
+const TITLE_RE = /<title[^>]*>([^<]*)<\/title>/i;
+const RAY_RE = /Ray ID:\s*<strong[^>]*>([0-9a-f]+)</i;
+function truncate(message) {
+	return message.length > MAX_LENGTH ? `${message.slice(0, MAX_LENGTH)}…` : message;
+}
+/**
+* One line for any error, with HTML error pages summarized rather than dumped.
+* The status, the page title and Cloudflare's Ray ID are the parts worth
+* keeping: together they say who rejected the request and identify it in their
+* logs. A blocked request never reached the model, so the issue stays
+* `needs-triage` for a human — the point of the line is to make that visible.
+*/
+function formatError(error) {
+	const raw = error instanceof Error ? error.message : String(error);
+	if (!HTML_RE.test(raw)) return truncate(raw);
+	const status = STATUS_RE.exec(raw)?.[1];
+	const title = TITLE_RE.exec(raw)?.[1]?.trim();
+	const ray = RAY_RE.exec(raw)?.[1];
+	const parts = [];
+	if (status) parts.push(status);
+	parts.push(title ? JSON.stringify(title) : "HTML error page");
+	if (ray) parts.push(`Ray ID ${ray}`);
+	parts.push(`${raw.length} bytes of HTML, not an API response`);
+	return parts.join(" · ");
+}
+//#endregion
 //#region src/core/github.ts
 var GitHubError = class extends Error {
 	name = "GitHubError";
@@ -2328,8 +2358,7 @@ async function main() {
 	setOutput("comment-url", outcome.commentUrl ?? "");
 }
 main().catch((error) => {
-	const message = error instanceof Error ? error.message : String(error);
-	console.log(`::error::${message}`);
+	console.log(`::error::${formatError(error)}`);
 	process.exitCode = 1;
 });
 //#endregion

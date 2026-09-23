@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 import { checks } from "./checks/index.ts";
 import { renderComment, renderLine } from "./core/comment.ts";
 import { ConfigError, resolveConfig } from "./core/config.ts";
+import { formatError } from "./core/errors.ts";
 import { createGitHubClient, type IssueClient } from "./core/github.ts";
 import { createRecordedJev, createTypeSafeJev, type JevClient } from "./core/jev.ts";
 import { applyReport, parseIssue, runTriage } from "./core/runner.ts";
@@ -219,12 +220,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  const message =
-    error instanceof ConfigError
-      ? `config: ${error.message}`
-      : error instanceof Error
-        ? error.message
-        : String(error);
+  const message = error instanceof ConfigError ? `config: ${error.message}` : formatError(error);
   console.error(message);
   process.exitCode = 1;
 });
