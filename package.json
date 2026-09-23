@@ -2,6 +2,7 @@
   "name": "rolldown-triager",
   "private": true,
   "description": "GitHub Action that triages rolldown issues with TypeSafe's Jev model",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "node build.ts",
