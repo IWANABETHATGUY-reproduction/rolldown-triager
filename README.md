@@ -20,17 +20,20 @@ labeled needs-triage ─► fetch issue (REST, incl. native type)
 
 Checks shipped:
 
-| check                   | asks                                                                                                                                                                                                                                              | outcome                                                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reproduction` (gating) | nothing when a runnable link (REPL, StackBlitz, CodeSandbox, vite.new, gist, GitHub repo) is found in code, or when the body is essentially empty; otherwise `runnable`, `self_evident`, a 4-level `repro_quality` score, and `explains_no_repro` | adds `needs-reproduction` when there is nothing a maintainer could run, the report carries no evidence they could start from, and the reporter gives no concrete reason a live repro is impossible |
-| `priority`              | bugs: unusable? via Vite? regression? common setup? workaround? argues its own priority? — features: named framework blocked? usefulness (3 levels)                                                                                               | `p1` / `p2` / `p3`, or abstains when an axis on the taken path is in the unsure band; never `p0`                                                                                                   |
-| `has-workaround`        | reuses the `workaround` question                                                                                                                                                                                                                  | `has workaround` (suggest-only by default; exists to show how small a check is)                                                                                                                    |
+| check            | asks                                                                                                                                                                                                                                              | outcome                                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reproduction`   | nothing when a runnable link (REPL, StackBlitz, CodeSandbox, vite.new, gist, GitHub repo) is found in code, or when the body is essentially empty; otherwise `runnable`, `self_evident`, a 4-level `repro_quality` score, and `explains_no_repro` | adds `needs-reproduction` when there is nothing a maintainer could run, the report carries no evidence they could start from, and the reporter gives no concrete reason a live repro is impossible |
+| `priority`       | bugs: unusable? via Vite? regression? common setup? workaround? argues its own priority? — features: named framework blocked? usefulness (3 levels)                                                                                               | `p1` / `p2` / `p3`, or abstains when an axis on the taken path is in the unsure band; never `p0`                                                                                                   |
+| `has-workaround` | reuses the `workaround` question                                                                                                                                                                                                                  | `has workaround` (suggest-only by default; exists to show how small a check is)                                                                                                                    |
 
 Invariants live in one place (`src/core/policy.ts`) so every check inherits them: `p0` is never applied;
 applying any `p*` removes `needs-triage`; nothing else is ever removed; an issue that already carries a `p*`
-was decided by a human, so priority becomes suggest-only; a failed or unsure reproduction gate blocks every
-other label; a kind the model guessed with low confidence blocks labels; a report that argues its own
-priority ("this is a P0") is suggest-only.
+was decided by a human, so priority becomes suggest-only; a kind the model guessed with low confidence
+blocks labels; a report that argues its own priority ("this is a P0") is suggest-only.
+
+Checks do not suppress one another. A missing reproduction means the report is hard to verify, not that the
+problem is less severe, so it no longer holds back a priority — a maintainer corrects a wrong priority in one
+click, whereas one that was never applied is invisible.
 
 ## Using it
 

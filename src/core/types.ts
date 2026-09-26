@@ -207,7 +207,6 @@ export interface Check<O = unknown> {
   /** `/^[a-z][a-z0-9-]*$/`, unique across checks; prefixes its question keys. */
   id: string;
   /** When true, a `fail`/`unsure` gate from this check downgrades every other check to suggest. */
-  gating?: boolean;
   defaultMode?: Mode;
   defaultOptions?: O;
   /** Questions to batch into the single Jev request; `null` = skipped, `{}` = decide without the model. */

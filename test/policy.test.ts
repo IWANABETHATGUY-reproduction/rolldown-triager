@@ -21,7 +21,7 @@ const check = (id: string, over: Partial<Check> = {}): Check =>
     ...over,
   });
 
-const gate = check("reproduction", { gating: true });
+const gate = check("reproduction");
 const prio = check("priority");
 const extra = check("has-workaround", { defaultMode: "suggest" });
 
@@ -67,7 +67,9 @@ describe("applyPolicy", () => {
     expect(plan.add).toEqual([]);
   });
 
-  it("a failed or unsure gate blocks every other check but not the gating check itself", () => {
+  it("a failed or unsure reproduction does not hold back another check's label", () => {
+    // Verifiability and severity are separate questions. A maintainer retitles a
+    // wrong priority in one click; a priority that was never applied is invisible.
     for (const gateVerdict of [
       decided(["needsReproduction"], { gate: "fail" }),
       { status: "abstained", note: "unsure", gate: "unsure" } as Verdict,
@@ -79,12 +81,10 @@ describe("applyPolicy", () => {
         ],
         ctx(),
       );
-      expect(results[1]).toMatchObject({
-        effective: "suggested",
-        downgradedBecause: ["reproduction gate not passed"],
-      });
-      expect(plan.remove).toEqual([]);
-      expect(plan.add).toEqual(gateVerdict.status === "decided" ? ["needs-reproduction"] : []);
+      expect(results[1]).toMatchObject({ effective: "applied", downgradedBecause: [] });
+      expect(plan.add).toContain("p2: significant / minor bug");
+      expect(plan.remove).toEqual(["needs-triage"]);
+      if (gateVerdict.status === "decided") expect(plan.add).toContain("needs-reproduction");
     }
   });
 

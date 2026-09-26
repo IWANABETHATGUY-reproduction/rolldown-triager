@@ -34,12 +34,14 @@ function isEmptyReport(
 }
 
 /**
- * Gating: when this fails or is unsure, no other check may apply labels, because
- * the workflow's first question is "does it have a proper reproduction?".
+ * `verdict.gate` is reported but no longer suppresses anything. A missing
+ * reproduction says the report is hard to verify; it says nothing about how bad
+ * the problem is, and the two used to be conflated — a confident p1 was thrown
+ * away because this check was merely unsure. Maintainers correct a wrong
+ * priority in one click; they cannot correct one that was never offered.
  */
 export const reproduction = defineCheck({
   id: "reproduction",
-  gating: true,
   defaultMode: "apply",
 
   questions(ctx) {

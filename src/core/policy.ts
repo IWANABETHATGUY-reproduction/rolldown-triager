@@ -36,14 +36,6 @@ export function applyPolicy(
   ctx: Ctx,
 ): { results: CheckResult[]; plan: LabelPlan } {
   const { labels, modes, thresholds } = ctx.config;
-  const gateBlockers = inputs
-    .filter(
-      ({ check, verdict }) =>
-        check.gating &&
-        ((verdict.status === "decided" && verdict.gate === "fail") ||
-          (verdict.status === "abstained" && verdict.gate === "unsure")),
-    )
-    .map(({ check }) => check.id);
   const priorityNames = new Set(PRIORITY_SLOTS.map((s) => labels[s]));
   const hasPriorityAlready = ctx.issue.labels.some((l) => priorityNames.has(l));
   const kindWeak =
@@ -74,8 +66,6 @@ export function applyPolicy(
       });
       if (verdict.forceSuggest) downgradedBecause.push(verdict.forceSuggest);
       if (slots.length > 0) {
-        const blockers = gateBlockers.filter((id) => id !== check.id);
-        if (blockers.length > 0) downgradedBecause.push(`${blockers.join(", ")} gate not passed`);
         if (slots.some(isPriority) && hasPriorityAlready) {
           downgradedBecause.push("issue already has a priority label");
         }

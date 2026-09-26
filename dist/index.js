@@ -1107,7 +1107,6 @@ function isEmptyReport(ctx) {
 const checks = [
 	defineCheck({
 		id: "reproduction",
-		gating: true,
 		defaultMode: "apply",
 		questions(ctx) {
 			if (ctx.kind === "feature" || ctx.kind === "task" || ctx.kind === "question") return null;
@@ -1976,7 +1975,6 @@ function modeFor(check, modes) {
 }
 function applyPolicy(inputs, ctx) {
 	const { labels, modes, thresholds } = ctx.config;
-	const gateBlockers = inputs.filter(({ check, verdict }) => check.gating && (verdict.status === "decided" && verdict.gate === "fail" || verdict.status === "abstained" && verdict.gate === "unsure")).map(({ check }) => check.id);
 	const priorityNames = new Set(PRIORITY_SLOTS.map((s) => labels[s]));
 	const hasPriorityAlready = ctx.issue.labels.some((l) => priorityNames.has(l));
 	const kindWeak = ctx.kindSource === "model" && (ctx.kindConfidence ?? 0) < thresholds.kindConfidence;
@@ -2003,8 +2001,6 @@ function applyPolicy(inputs, ctx) {
 			});
 			if (verdict.forceSuggest) downgradedBecause.push(verdict.forceSuggest);
 			if (slots.length > 0) {
-				const blockers = gateBlockers.filter((id) => id !== check.id);
-				if (blockers.length > 0) downgradedBecause.push(`${blockers.join(", ")} gate not passed`);
 				if (slots.some(isPriority) && hasPriorityAlready) downgradedBecause.push("issue already has a priority label");
 				if (kindWeak) downgradedBecause.push("issue kind came from the model with low confidence");
 			}

@@ -40,8 +40,7 @@ second round trip. Each check then gets `answersFor(id)` — its own keys, prefi
   `bugQuestions.workaround`).
 
 **Every invariant is in `src/core/policy.ts`** — never p0, `p*` ⇒ remove `needs-triage`, only
-`needs-triage` is ever removed, existing `p*` ⇒ suggest, gating check `fail`/`unsure` ⇒ everyone else
-suggest, model-guessed kind with low confidence ⇒ suggest, `forceSuggest` from a check ⇒ suggest, per-check
+`needs-triage` is ever removed, existing `p*` ⇒ suggest, model-guessed kind with low confidence ⇒ suggest, `forceSuggest` from a check ⇒ suggest, per-check
 `mode`. Add a rule there, not in a check.
 
 **Deterministic first, model second.** `parse.ts` (form sections from `### ` headings, template detection,
@@ -51,6 +50,12 @@ any question is written. `sanitize.ts` + `state.ts` build the _only_ thing Jev s
 capped sections. Labels, author, comments, dates, and the link list are never sent — Jev's accuracy drops
 with irrelevant state, and issue bodies are attacker-controlled (a report saying "P0 blocker" only trips
 `argues_priority`, which forces suggest).
+
+**Checks never suppress each other.** A missing reproduction says the report is hard to verify; it says
+nothing about how severe the problem is, and the two used to be conflated — a `gating` flag downgraded every
+other check when reproduction failed _or was merely unsure_, throwing away 19 of 40 confident priorities on a
+100-issue sample. `verdict.gate` is still reported in the summary; it no longer changes what gets applied. A
+maintainer fixes a wrong priority in one click, so the cost of offering one is far below the cost of silence.
 
 **The reproduction check turns on runnability, not writing quality.** `runnable` asks whether a maintainer
 could run the report as written; `self_evident` asks whether they could start from its evidence anyway

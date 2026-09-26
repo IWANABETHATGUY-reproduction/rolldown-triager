@@ -91,12 +91,26 @@ describe("runTriage on recorded fixtures (offline)", () => {
     expect(opaque.results[0]?.verdict).toMatchObject({ gate: "fail" });
     expect(opaque.plan.add).toEqual(["needs-reproduction"]);
 
-    // Either way the gate holds priority back.
+    // Priority stands on its own either way: a missing reproduction says the
+    // report is hard to verify, not that the problem is less severe. Nothing
+    // downgrades it — it is only suggested here because `priority` ships in
+    // suggest mode, and in apply mode the label lands.
     for (const r of [evident, opaque]) {
-      // The check still names p1; the gate is what keeps it out of the plan.
-      expect(r.results[1]?.downgradedBecause).toContain("reproduction gate not passed");
+      expect(r.results[1]?.downgradedBecause).toEqual([]);
       expect(r.results[1]?.effective).toBe("suggested");
-      expect(r.plan.add).not.toContain("p1: important");
+    }
+    const applying = resolveConfig({ modes: "priority=apply" });
+    for (const n of [10384, 10464]) {
+      const r = await runTriage({
+        issue: loadIssue(n),
+        config: applying,
+        jev,
+        checks,
+        force: true,
+      });
+      expect(r.results[1]).toMatchObject({ effective: "applied", downgradedBecause: [] });
+      expect(r.plan.add).toContain("p1: important");
+      expect(r.plan.remove).toEqual(["needs-triage"]);
     }
   });
 
