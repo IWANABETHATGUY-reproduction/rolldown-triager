@@ -15,7 +15,7 @@ describe("resolveConfig", () => {
     expect(c.checks).toEqual(["reproduction", "priority"]);
     expect(c.modes).toEqual({ reproduction: "apply", priority: "suggest" });
     expect(c.model).toBe(DEFAULT_MODEL);
-    expect(c.comment).toBe("when-needed");
+    expect(c.comment).toBe("never");
   });
 
   it("parses lists, modes and JSON overrides", () => {

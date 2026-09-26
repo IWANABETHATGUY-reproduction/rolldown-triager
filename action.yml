@@ -35,11 +35,13 @@ inputs:
     default: "{}"
   comment:
     description: >-
-      When to post the triage comment: always, when-acting, when-needed, never.
-      The default, when-needed, stays silent when the labels already say
-      everything, and comments only to carry a suggestion or a request for a
-      reproduction.
-    default: when-needed
+      When to post the triage comment: never, when-needed, when-acting, always.
+      The default is never: the labels are the outcome and the full report goes
+      to the job summary. Note that with the default GITHUB_TOKEN nothing else
+      reacts to the labels either, so a `needs-reproduction` applied under
+      `never` tells the reporter nothing; pass an App token so the repository's
+      own comment automation fires, or use when-needed.
+    default: never
   model:
     description: Jev model id. Pinned by default because thresholds are tuned per version.
     default: jev-1.13.0

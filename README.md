@@ -20,11 +20,11 @@ labeled needs-triage ─► fetch issue (REST, incl. native type)
 
 Checks shipped:
 
-| check                   | asks                                                                                                                                                                                    | outcome                                                                                                                                                          |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| check                   | asks                                                                                                                                                                                                                                              | outcome                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `reproduction` (gating) | nothing when a runnable link (REPL, StackBlitz, CodeSandbox, vite.new, gist, GitHub repo) is found in code, or when the body is essentially empty; otherwise `runnable`, `self_evident`, a 4-level `repro_quality` score, and `explains_no_repro` | adds `needs-reproduction` when there is nothing a maintainer could run, the report carries no evidence they could start from, and the reporter gives no concrete reason a live repro is impossible |
-| `priority`              | bugs: unusable? via Vite? regression? common setup? workaround? argues its own priority? — features: named framework blocked? usefulness (3 levels)                                     | `p1` / `p2` / `p3`, or abstains when an axis on the taken path is in the unsure band; never `p0`                                                                 |
-| `has-workaround`        | reuses the `workaround` question                                                                                                                                                        | `has workaround` (suggest-only by default; exists to show how small a check is)                                                                                  |
+| `priority`              | bugs: unusable? via Vite? regression? common setup? workaround? argues its own priority? — features: named framework blocked? usefulness (3 levels)                                                                                               | `p1` / `p2` / `p3`, or abstains when an axis on the taken path is in the unsure band; never `p0`                                                                                                   |
+| `has-workaround`        | reuses the `workaround` question                                                                                                                                                                                                                  | `has workaround` (suggest-only by default; exists to show how small a check is)                                                                                                                    |
 
 Invariants live in one place (`src/core/policy.ts`) so every check inherits them: `p0` is never applied;
 applying any `p*` removes `needs-triage`; nothing else is ever removed; an issue that already carries a `p*`
@@ -57,12 +57,15 @@ Re-run on an issue by re-adding `needs-triage`. Manual labels always win: the bo
 Inputs (all optional except the key): `token`, `repository`, `issue-number`, `checks` (default
 `reproduction,priority`), `modes` (`check=apply|suggest|off`), `options` (JSON per check, e.g.
 `{"priority":{"applyLabels":["p2","p3"]}}`), `labels` (JSON overrides for label names), `thresholds` (JSON),
-`comment` (`when-needed` by default / `always` / `when-acting` / `never`), `model` (pinned `jev-1.13.0`),
+`comment` (`never` by default / `when-needed` / `when-acting` / `always`), `model` (pinned `jev-1.13.0`),
 `dry-run`. Outputs: `report`
 (JSON), `priority`, `needs-reproduction`, `comment-url`. See `action.yml`.
 
-Labels added with the default `GITHUB_TOKEN` do not trigger other workflows, so the bot's own comment carries
-the "please add a reproduction" request; pass a GitHub App token as `token` if downstream workflows should fire.
+The bot does not comment by default (`comment: never`) — the labels are the outcome and the full report,
+with every probability, goes to the job summary. One consequence to plan for: labels written with the default
+`GITHUB_TOKEN` do not trigger other workflows, so under `never` a `needs-reproduction` reaches the reporter as
+a bare label and a 14-day clock. Pass a GitHub App token as `token` so the repository's own comment automation
+fires, or set `comment: when-needed` to have this bot carry the request itself.
 
 ## Measured against maintainers
 

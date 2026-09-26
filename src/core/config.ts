@@ -131,7 +131,7 @@ export function resolveConfig(raw: RawConfig = {}): ResolvedConfig {
     throw new ConfigError("`thresholds.noulNo` must be below `thresholds.noulYes`");
   }
 
-  const comment = raw.comment?.trim() || "when-needed";
+  const comment = raw.comment?.trim() || "never";
   if (!COMMENT_MODES.has(comment)) {
     throw new ConfigError(`\`comment\` must be one of always, when-acting, when-needed, never`);
   }
