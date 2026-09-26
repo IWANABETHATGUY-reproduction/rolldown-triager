@@ -952,12 +952,6 @@ function decideBug(answers, ctx) {
 		if (workaround === "unsure") return unsure(evidence, "reporter has a workaround");
 		verdict = workaround === "yes" ? decided("p3", "build usable, workaround described") : decided("p2", "build usable, no workaround described");
 	}
-	const argues = answers.noul("argues_priority");
-	if (argues !== void 0) evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
-	if (ctx.flags.priorityWords || (argues ?? 0) >= ctx.config.thresholds.arguesPriority) verdict = {
-		...verdict,
-		forceSuggest: "the report argues its own priority"
-	};
 	return verdict;
 }
 /**
@@ -1014,12 +1008,6 @@ function decidePanic(answers, ctx) {
 		add: ["p3"],
 		note: "crash behind a specific platform, host or experimental flag",
 		evidence
-	};
-	const argues = answers.noul("argues_priority");
-	if (argues !== void 0) evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
-	if (ctx.flags.priorityWords || (argues ?? 0) >= t.arguesPriority) verdict = {
-		...verdict,
-		forceSuggest: "the report argues its own priority"
 	};
 	return verdict;
 }
@@ -1103,6 +1091,14 @@ const priority = defineCheck({
 			default: return {
 				status: "abstained",
 				note: "could not tell whether this is a bug or a feature"
+			};
+		}
+		if (verdict.status === "decided") {
+			const argues = answers.noul("argues_priority");
+			if (argues !== void 0 && verdict.evidence) verdict.evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
+			if (!verdict.forceSuggest && (ctx.flags.priorityWords || (argues ?? 0) >= ctx.config.thresholds.arguesPriority)) verdict = {
+				...verdict,
+				forceSuggest: "the report argues its own priority"
 			};
 		}
 		if (verdict.status === "decided" && !verdict.forceSuggest) {
@@ -1219,18 +1215,13 @@ const checks = [
 			if (teamFiled(ctx, ctx.options.skipAuthors ?? [])) return null;
 			if (ctx.kind === "feature" || ctx.kind === "task" || ctx.kind === "question") return null;
 			if (ctx.flags.runnableLinks.length > 0) return {};
+			if (isEmptyReport(ctx)) return {};
 			return reproQuestions;
 		},
 		decide(answers, ctx) {
 			if (teamFiled(ctx, ctx.options.skipAuthors ?? [])) return {
 				status: "skipped",
 				reason: "filed by the team"
-			};
-			if (isEmptyReport(ctx)) return {
-				status: "decided",
-				add: ["needsReproduction"],
-				note: "the report has no reproduction and almost no content",
-				gate: "fail"
 			};
 			switch (ctx.kind) {
 				case "feature": return {
@@ -1245,12 +1236,18 @@ const checks = [
 					status: "skipped",
 					reason: "question"
 				};
-				case "unknown": return {
-					status: "abstained",
-					note: "could not tell whether this is a bug",
-					gate: "unsure"
-				};
 			}
+			if (isEmptyReport(ctx)) return {
+				status: "decided",
+				add: ["needsReproduction"],
+				note: "the report has no reproduction and almost no content",
+				gate: "fail"
+			};
+			if (ctx.kind === "unknown") return {
+				status: "abstained",
+				note: "could not tell whether this is a bug",
+				gate: "unsure"
+			};
 			const runnable = ctx.flags.runnableLinks;
 			if (runnable.length > 0) {
 				const first = runnable[0];
@@ -1341,7 +1338,7 @@ function renderLine(result, labels) {
 	const parts = [];
 	if (result.labels.length > 0) {
 		const verb = result.effective === "applied" ? "set" : "suggest";
-		const removed = result.effective === "applied" && result.labels.some((l) => l.startsWith("p")) ? `, removed ${code(labels.needsTriage)}` : "";
+		const removed = result.effective === "applied" && result.labels.some((l) => PRIORITY_SLOTS.some((slot) => labels[slot] === l)) ? `, removed ${code(labels.needsTriage)}` : "";
 		parts.push(`${verb} ${result.labels.map(code).join(", ")}${removed} — ${v.note}`);
 	} else parts.push(v.note);
 	if (v.humanNote) parts.push(`; ${v.humanNote}`);
@@ -1575,7 +1572,9 @@ function createGitHubClient(options) {
 	const toComment = (c) => ({
 		id: c.id,
 		body: c.body ?? "",
-		htmlUrl: c.html_url
+		htmlUrl: c.html_url,
+		authorLogin: c.user?.login ?? null,
+		authorIsBot: c.user?.type === "Bot"
 	});
 	const toIssue = (raw) => ({
 		number: raw.number,
@@ -1607,8 +1606,16 @@ function createGitHubClient(options) {
 		async updateComment(id, body) {
 			return toComment(await request("PATCH", `${issuesPath}/comments/${id}`, { body }));
 		},
-		async setLabels(number, labels) {
-			await request("PUT", `${issuesPath}/${number}/labels`, { labels });
+		async addLabels(number, labels) {
+			if (labels.length === 0) return;
+			await request("POST", `${issuesPath}/${number}/labels`, { labels });
+		},
+		async removeLabel(number, label) {
+			try {
+				await request("DELETE", `${issuesPath}/${number}/labels/${encodeURIComponent(label)}`);
+			} catch (error) {
+				if (!(error instanceof GitHubError) || error.status !== 404) throw error;
+			}
 		},
 		async listIssues({ label, since, limit }) {
 			const out = [];
@@ -1711,6 +1718,8 @@ function answersFor(all, prefix) {
 }
 //#endregion
 //#region src/core/repl.ts
+/** Decompressed REPL payloads above this are refused rather than parsed. */
+const MAX_PAYLOAD_BYTES = 2097152;
 const REPL_HOSTS = ["repl.rolldown.rs", "rolldown-repl.netlify.app"];
 /** zlib header: CMF 0x78 (deflate, 32k window) and (CMF << 8 | FLG) divisible by 31. */
 function isZlib(bin) {
@@ -1736,7 +1745,7 @@ function decodeReplUrl(url) {
 	};
 	let text;
 	try {
-		text = isZlib(bin) ? inflateSync(bin).toString("utf8") : decodeURIComponent(bin.toString("latin1"));
+		text = isZlib(bin) ? inflateSync(bin, { maxOutputLength: MAX_PAYLOAD_BYTES }).toString("utf8") : decodeURIComponent(bin.toString("latin1"));
 	} catch {
 		return {
 			ok: false,
@@ -1773,9 +1782,20 @@ function decodeReplUrl(url) {
 	}
 	return {
 		ok: true,
-		version: typeof v === "string" && v ? v : "unknown",
+		version: cleanVersion(v),
 		files
 	};
+}
+/**
+* The version string is rendered into notes and job summaries, so it is flattened
+* to one short token. Unbounded it carried newlines, Markdown headings and
+* @mentions straight out of an attacker-supplied URL.
+*/
+function cleanVersion(v) {
+	if (typeof v !== "string") return "unknown";
+	const flat = v.replace(/[^\w.+-]+/g, " ").trim();
+	if (!flat) return "unknown";
+	return flat.length > 24 ? `${flat.slice(0, 24)}…` : flat;
 }
 function replHasContent(decoded) {
 	return decoded.ok && decoded.files.some((f) => f.content.trim().length > 0);
@@ -1847,7 +1867,15 @@ function classify(url) {
 		};
 		return null;
 	}
-	if (host === "codesandbox.io" || host.endsWith(".csb.app")) return {
+	if (host === "codesandbox.io") {
+		if (/^\/(s|p|embed|devbox|sandbox)\//.test(path)) return {
+			kind: "codesandbox",
+			url,
+			ok: true
+		};
+		return null;
+	}
+	if (host.endsWith(".csb.app")) return {
 		kind: "codesandbox",
 		url,
 		ok: true
@@ -2447,21 +2475,28 @@ async function applyReport(report, config, gh, options) {
 		labelsChanged: false,
 		skipped: "already-triaged"
 	};
-	let labelsChanged = false;
-	let finalLabels = fresh.labels;
-	if (report.plan.add.length > 0 || report.plan.remove.length > 0) {
-		finalLabels = fresh.labels.filter((l) => !report.plan.remove.includes(l));
-		for (const l of report.plan.add) if (!finalLabels.includes(l)) finalLabels.push(l);
-		if (finalLabels.length !== fresh.labels.length || finalLabels.some((l) => !fresh.labels.includes(l))) {
-			await gh.setLabels(report.issue.number, finalLabels);
-			labelsChanged = true;
-		}
-	}
+	const priorityNames = new Set(PRIORITY_SLOTS.map((slot) => config.labels[slot]));
+	const freshHasPriority = fresh.labels.some((l) => priorityNames.has(l));
+	const add = report.plan.add.filter((l) => !(freshHasPriority && priorityNames.has(l)));
+	const remove = add.some((l) => priorityNames.has(l)) ? report.plan.remove : [];
 	let commentUrl;
 	if (comment) {
-		const existing = (await gh.listComments(report.issue.number)).find((c) => c.body.includes(MARKER));
+		const ours = (await gh.listComments(report.issue.number)).filter((c) => c.body.startsWith(MARKER));
+		const existing = ours.find((c) => c.authorIsBot) ?? ours[0];
 		commentUrl = (existing ? await gh.updateComment(existing.id, comment) : await gh.createComment(report.issue.number, comment)).htmlUrl;
 	}
+	let labelsChanged = false;
+	const toAdd = add.filter((l) => !fresh.labels.includes(l));
+	const toRemove = remove.filter((l) => fresh.labels.includes(l));
+	if (toAdd.length > 0) {
+		await gh.addLabels(report.issue.number, toAdd);
+		labelsChanged = true;
+	}
+	for (const label of toRemove) {
+		await gh.removeLabel(report.issue.number, label);
+		labelsChanged = true;
+	}
+	const finalLabels = [...fresh.labels.filter((l) => !toRemove.includes(l)), ...toAdd];
 	return {
 		labelsChanged,
 		finalLabels,
@@ -2485,9 +2520,10 @@ function setOutput(name, value) {
 function isTrue(value) {
 	return /^(true|1|yes)$/i.test(value);
 }
-function priorityOutput(report) {
+function priorityOutput(report, labels) {
+	const names = new Set(PRIORITY_SLOTS.map((slot) => labels[slot]));
 	for (const r of report.results) {
-		const label = r.labels.find((l) => /^p[0-3]/.test(l));
+		const label = r.labels.find((l) => names.has(l));
 		if (label && (r.effective === "applied" || r.effective === "suggested")) return label;
 	}
 	return "";
@@ -2537,7 +2573,7 @@ async function main() {
 	else if (outcome.labelsChanged) console.log(`::notice::labels now [${(outcome.finalLabels ?? []).join(", ")}]`);
 	appendTo("GITHUB_STEP_SUMMARY", renderSummary(report, config.labels));
 	setOutput("report", JSON.stringify(report));
-	setOutput("priority", priorityOutput(report));
+	setOutput("priority", priorityOutput(report, config.labels));
 	setOutput("needs-reproduction", String(report.results.some((r) => r.labels.includes(config.labels.needsReproduction) && r.effective !== "skipped")));
 	setOutput("comment-url", outcome.commentUrl ?? "");
 }

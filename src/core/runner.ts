@@ -18,6 +18,7 @@ import type {
   Report,
   ResolvedConfig,
 } from "./types.ts";
+import { PRIORITY_SLOTS } from "./types.ts";
 import { kindQuestion } from "../questions/kind.ts";
 
 import type { Questions } from "@typesafe-ai/sdk";
@@ -231,30 +232,43 @@ export async function applyReport(
     return { labelsChanged: false, skipped: "already-triaged" };
   }
 
-  let labelsChanged = false;
-  let finalLabels = fresh.labels;
-  if (report.plan.add.length > 0 || report.plan.remove.length > 0) {
-    finalLabels = fresh.labels.filter((l) => !report.plan.remove.includes(l));
-    for (const l of report.plan.add) if (!finalLabels.includes(l)) finalLabels.push(l);
-    if (
-      finalLabels.length !== fresh.labels.length ||
-      finalLabels.some((l) => !fresh.labels.includes(l))
-    ) {
-      await gh.setLabels(report.issue.number, finalLabels);
-      labelsChanged = true;
-    }
-  }
+  // Re-check the "a human already decided" rule against the labels as they are
+  // now, not as they were before inference. Otherwise a priority added during
+  // the run is joined by ours instead of overriding it.
+  const priorityNames = new Set(PRIORITY_SLOTS.map((slot) => config.labels[slot]));
+  const freshHasPriority = fresh.labels.some((l) => priorityNames.has(l));
+  const add = report.plan.add.filter((l) => !(freshHasPriority && priorityNames.has(l)));
+  const remove = add.some((l) => priorityNames.has(l)) ? report.plan.remove : [];
 
+  // The comment goes first. Labels are the irreversible half — once
+  // `needs-triage` is off, a rerun short-circuits as already-triaged — so a
+  // comment that fails after them can never be retried.
   let commentUrl: string | undefined;
   if (comment) {
-    const existing = (await gh.listComments(report.issue.number)).find((c) =>
-      c.body.includes(MARKER),
+    const ours = (await gh.listComments(report.issue.number)).filter((c) =>
+      c.body.startsWith(MARKER),
     );
+    // Starting with the marker excludes a reporter quoting us, since a quote is
+    // prefixed with "> "; preferring a Bot author excludes the rest.
+    const existing = ours.find((c) => c.authorIsBot) ?? ours[0];
     const saved = existing
       ? await gh.updateComment(existing.id, comment)
       : await gh.createComment(report.issue.number, comment);
     commentUrl = saved.htmlUrl;
   }
+
+  let labelsChanged = false;
+  const toAdd = add.filter((l) => !fresh.labels.includes(l));
+  const toRemove = remove.filter((l) => fresh.labels.includes(l));
+  if (toAdd.length > 0) {
+    await gh.addLabels(report.issue.number, toAdd);
+    labelsChanged = true;
+  }
+  for (const label of toRemove) {
+    await gh.removeLabel(report.issue.number, label);
+    labelsChanged = true;
+  }
+  const finalLabels = [...fresh.labels.filter((l) => !toRemove.includes(l)), ...toAdd];
 
   return {
     labelsChanged,

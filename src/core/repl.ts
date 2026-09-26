@@ -1,6 +1,9 @@
 import { Buffer } from "node:buffer";
 import { inflateSync } from "node:zlib";
 
+/** Decompressed REPL payloads above this are refused rather than parsed. */
+const MAX_PAYLOAD_BYTES = 2 * 1024 * 1024;
+
 // The rolldown REPL keeps its whole state in the URL hash as
 // base64(zlib(JSON({ f: files, v: version }))). Mirrors rolldown/repl
 // `app/utils/url.ts` and the decoder in rolldown's `rolldown-repl` skill.
@@ -40,7 +43,9 @@ export function decodeReplUrl(url: string): ReplDecode {
   let text: string;
   try {
     text = isZlib(bin)
-      ? inflateSync(bin).toString("utf8")
+      ? // Bounded: the hash is attacker-controlled, and a 10 KB URL inflates
+        // to 8 MiB at a 1000x ratio without this.
+        inflateSync(bin, { maxOutputLength: MAX_PAYLOAD_BYTES }).toString("utf8")
       : // Legacy share links: decodeURIComponent(escape(binary)).
         decodeURIComponent(bin.toString("latin1"));
   } catch {
@@ -65,7 +70,19 @@ export function decodeReplUrl(url: string): ReplDecode {
     const content = typeof m.c === "string" ? m.c : typeof m.code === "string" ? m.code : "";
     files.push({ name: typeof m.n === "string" ? m.n : name, content, entry: m.e === true });
   }
-  return { ok: true, version: typeof v === "string" && v ? v : "unknown", files };
+  return { ok: true, version: cleanVersion(v), files };
+}
+
+/**
+ * The version string is rendered into notes and job summaries, so it is flattened
+ * to one short token. Unbounded it carried newlines, Markdown headings and
+ * @mentions straight out of an attacker-supplied URL.
+ */
+function cleanVersion(v: unknown): string {
+  if (typeof v !== "string") return "unknown";
+  const flat = v.replace(/[^\w.+-]+/g, " ").trim();
+  if (!flat) return "unknown";
+  return flat.length > 24 ? `${flat.slice(0, 24)}…` : flat;
 }
 
 export function replHasContent(decoded: ReplDecode): boolean {

@@ -5,6 +5,7 @@ import { renderSummary } from "./core/comment.ts";
 import { ConfigError, resolveConfig } from "./core/config.ts";
 import { formatError } from "./core/errors.ts";
 import { createGitHubClient } from "./core/github.ts";
+import { PRIORITY_SLOTS, type ResolvedConfig } from "./core/types.ts";
 import { createTypeSafeJev } from "./core/jev.ts";
 import { applyReport, runTriage } from "./core/runner.ts";
 import type { Report } from "./core/types.ts";
@@ -31,9 +32,12 @@ function isTrue(value: string): boolean {
   return /^(true|1|yes)$/i.test(value);
 }
 
-function priorityOutput(report: Report): string {
+function priorityOutput(report: Report, labels: ResolvedConfig["labels"]): string {
+  // By configured name, not by a `p0`-`p3` prefix: `labels` can rename any slot,
+  // and a repo calling p2 "severity: medium" used to get an empty output.
+  const names = new Set(PRIORITY_SLOTS.map((slot) => labels[slot]));
   for (const r of report.results) {
-    const label = r.labels.find((l) => /^p[0-3]/.test(l));
+    const label = r.labels.find((l) => names.has(l));
     if (label && (r.effective === "applied" || r.effective === "suggested")) return label;
   }
   return "";
@@ -102,7 +106,7 @@ async function main(): Promise<void> {
 
   appendTo("GITHUB_STEP_SUMMARY", renderSummary(report, config.labels));
   setOutput("report", JSON.stringify(report));
-  setOutput("priority", priorityOutput(report));
+  setOutput("priority", priorityOutput(report, config.labels));
   setOutput(
     "needs-reproduction",
     String(

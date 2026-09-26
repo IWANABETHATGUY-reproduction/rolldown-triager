@@ -63,7 +63,16 @@ function classify(url: string): ReproLink | null {
     return null;
   }
 
-  if (host === "codesandbox.io" || host.endsWith(".csb.app")) {
+  if (host === "codesandbox.io") {
+    // Same rule StackBlitz already had: a sandbox lives under a project path.
+    // Without it `codesandbox.io/pricing` counted as a reproduction and
+    // short-circuited the check in code.
+    if (/^\/(s|p|embed|devbox|sandbox)\//.test(path)) {
+      return { kind: "codesandbox", url, ok: true };
+    }
+    return null;
+  }
+  if (host.endsWith(".csb.app")) {
     return { kind: "codesandbox", url, ok: true };
   }
 

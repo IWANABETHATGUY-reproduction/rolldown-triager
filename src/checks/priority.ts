@@ -111,12 +111,6 @@ function decideBug(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
         : decided("p2", "build usable, no workaround described");
   }
 
-  const argues = answers.noul("argues_priority");
-  if (argues !== undefined)
-    evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
-  if (ctx.flags.priorityWords || (argues ?? 0) >= ctx.config.thresholds.arguesPriority) {
-    verdict = { ...verdict, forceSuggest: "the report argues its own priority" };
-  }
   return verdict;
 }
 
@@ -190,12 +184,6 @@ function decidePanic(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
     };
   }
 
-  const argues = answers.noul("argues_priority");
-  if (argues !== undefined)
-    evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
-  if (ctx.flags.priorityWords || (argues ?? 0) >= t.arguesPriority) {
-    verdict = { ...verdict, forceSuggest: "the report argues its own priority" };
-  }
   return verdict;
 }
 
@@ -265,6 +253,23 @@ export const priority = defineCheck<PriorityOptions>({
         return { status: "skipped", reason: "looks like a question, not a bug or feature" };
       default:
         return { status: "abstained", note: "could not tell whether this is a bug or a feature" };
+    }
+    // The self-prioritisation guard belongs here, not in a branch: a report
+    // arguing "P0 urgent blocker" must not label itself whichever path decided
+    // it. Three branches used to return before reaching it — the panic
+    // invalid-input and fallback paths, and the feature branch, which never had
+    // it at all — so the defence failed exactly where the model was least sure.
+    if (verdict.status === "decided") {
+      const argues = answers.noul("argues_priority");
+      if (argues !== undefined && verdict.evidence) {
+        verdict.evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
+      }
+      if (
+        !verdict.forceSuggest &&
+        (ctx.flags.priorityWords || (argues ?? 0) >= ctx.config.thresholds.arguesPriority)
+      ) {
+        verdict = { ...verdict, forceSuggest: "the report argues its own priority" };
+      }
     }
     if (verdict.status === "decided" && !verdict.forceSuggest) {
       const slot = verdict.add.find((s): s is PrioritySlot => s.startsWith("p"));

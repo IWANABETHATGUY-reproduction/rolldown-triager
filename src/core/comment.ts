@@ -1,4 +1,5 @@
 import type { CheckResult, LabelNames, Report } from "./types.ts";
+import { PRIORITY_SLOTS } from "./types.ts";
 
 // One comment per issue, found again by MARKER and edited in place. Plain and
 // short; it never quotes the issue, so nothing in the body is reflected back.
@@ -39,7 +40,8 @@ export function renderLine(result: CheckResult, labels: LabelNames): string {
   if (result.labels.length > 0) {
     const verb = result.effective === "applied" ? "set" : "suggest";
     const removed =
-      result.effective === "applied" && result.labels.some((l) => l.startsWith("p"))
+      result.effective === "applied" &&
+      result.labels.some((l) => PRIORITY_SLOTS.some((slot) => labels[slot] === l))
         ? `, removed ${code(labels.needsTriage)}`
         : "";
     parts.push(`${verb} ${result.labels.map(code).join(", ")}${removed} — ${v.note}`);

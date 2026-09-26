@@ -138,7 +138,13 @@ function fakeGitHub(initial: Issue) {
     },
     createComment: async (_n, body) => {
       calls.push("createComment");
-      const c = { id: comments.length + 1, body, htmlUrl: `c${comments.length + 1}` };
+      const c = {
+        id: comments.length + 1,
+        body,
+        htmlUrl: `c${comments.length + 1}`,
+        authorLogin: "github-actions[bot]",
+        authorIsBot: true,
+      };
       comments.push(c);
       return c;
     },
@@ -149,9 +155,13 @@ function fakeGitHub(initial: Issue) {
       c.body = body;
       return c;
     },
-    setLabels: async (_n, labels) => {
-      calls.push(`setLabels ${labels.join("|")}`);
-      current = { ...current, labels };
+    addLabels: async (_n: number, labels: string[]) => {
+      calls.push(`addLabels ${labels.join("|")}`);
+      current = { ...current, labels: [...current.labels, ...labels] };
+    },
+    removeLabel: async (_n: number, label: string) => {
+      calls.push(`removeLabel ${label}`);
+      current = { ...current, labels: current.labels.filter((l) => l !== label) };
     },
     listIssues: async () => [],
     listLabelsEverAdded: async () => [],
@@ -196,11 +206,14 @@ describe("applyReport", () => {
       finalLabels: ["scope: wasi", "p1: important"],
       commentUrl: "c1",
     });
+    // The comment goes first: labels are the irreversible half, and a comment
+    // that failed after them could never be retried.
     expect(calls).toEqual([
       "getIssue",
-      "setLabels scope: wasi|p1: important",
       "listComments",
       "createComment",
+      "addLabels p1: important",
+      "removeLabel needs-triage",
     ]);
     expect(comments[0]?.body).toContain("[run](https://run/1)");
 

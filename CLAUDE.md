@@ -101,5 +101,13 @@ what maintainers actually label (numbers in README and in `DEFAULT_MODES`' comme
 - `GITHUB_TOKEN` writes don't trigger rolldown's other workflows; the comment text therefore includes the
   repro request itself, and must never contain ``Issues marked with `needs-reproduction` `` (rolldown's
   comment bot greps for it and would overwrite ours).
+- Labels are written with `addLabels`/`removeLabel`, never a PUT of the whole set: a PUT reverts any label
+  a human changed while the model was thinking. The comment is written _before_ the labels, because removing
+  `needs-triage` makes a rerun short-circuit, so a comment that failed after it could never be retried.
+- The comment to edit is found by the marker _at position 0_ plus a Bot author — a reporter quoting the bot
+  puts the marker in their own comment behind `> `.
+- Priorities are recognised by configured label name, never by a `p0`-`p3` prefix; `labels` can rename any slot.
+- The REPL hash is attacker-controlled: `inflateSync` is capped (a 10 KB URL inflates 1000x without it) and
+  the version string is flattened to one short token before it reaches a comment or the job summary.
 - `test/fixtures/**` is excluded from oxfmt; recordings stay byte-for-byte as captured.
 - Question keys must not contain `:`; the runner uses it as the namespace separator and the API accepts it.

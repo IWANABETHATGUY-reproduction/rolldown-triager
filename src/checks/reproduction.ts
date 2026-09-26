@@ -61,8 +61,11 @@ export const reproduction = defineCheck({
   questions(ctx) {
     if (teamFiled(ctx, ctx.options.skipAuthors ?? [])) return null;
     if (ctx.kind === "feature" || ctx.kind === "task" || ctx.kind === "question") return null;
-    // A runnable link settles it in code; nothing to ask.
+    // Both of these are settled in code, so asking would spend tokens on
+    // answers `decide` never reads — and would make a deterministic verdict
+    // depend on the model being reachable.
     if (ctx.flags.runnableLinks.length > 0) return {};
+    if (isEmptyReport(ctx)) return {};
     return reproQuestions;
   },
 
@@ -70,10 +73,25 @@ export const reproduction = defineCheck({
     if (teamFiled(ctx, ctx.options.skipAuthors ?? [])) {
       return { status: "skipped", reason: "filed by the team" };
     }
-    // An issue with no substance needs a reproduction whatever it turns out to
-    // be about, and the model never gets a useful read on it. Deciding this in
-    // code also rescues the case where kind is unknown *because* the body is
-    // empty, which used to abstain before the rubric was even asked.
+
+    // Kind first. A feature request or a task is never short of a
+    // reproduction, however little it says — "Add support for custom
+    // extensions." is a complete feature request, and the empty-report rule
+    // used to label it before this switch ever ran.
+    switch (ctx.kind) {
+      case "feature":
+        return { status: "skipped", reason: "feature request" };
+      case "task":
+        return { status: "skipped", reason: "task" };
+      case "question":
+        return { status: "skipped", reason: "question" };
+      default:
+        break;
+    }
+
+    // A bug report with no substance needs a reproduction whatever else is
+    // true, and the model never gets a useful read on it. This also covers the
+    // kind being unknown *because* the body is empty.
     if (isEmptyReport(ctx)) {
       return {
         status: "decided",
@@ -82,22 +100,12 @@ export const reproduction = defineCheck({
         gate: "fail",
       };
     }
-
-    switch (ctx.kind) {
-      case "feature":
-        return { status: "skipped", reason: "feature request" };
-      case "task":
-        return { status: "skipped", reason: "task" };
-      case "question":
-        return { status: "skipped", reason: "question" };
-      case "unknown":
-        return {
-          status: "abstained",
-          note: "could not tell whether this is a bug",
-          gate: "unsure",
-        };
-      default:
-        break;
+    if (ctx.kind === "unknown") {
+      return {
+        status: "abstained",
+        note: "could not tell whether this is a bug",
+        gate: "unsure",
+      };
     }
 
     const runnable = ctx.flags.runnableLinks;

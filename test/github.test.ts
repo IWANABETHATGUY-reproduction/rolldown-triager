@@ -86,20 +86,41 @@ describe("createGitHubClient", () => {
     });
     const gh = createGitHubClient({ token: "t", repo: "o/r", fetch: fetchImpl });
     expect(await gh.listComments(5)).toHaveLength(101);
-    expect(await gh.createComment(5, "hi")).toEqual({ id: 9, body: "hi", htmlUrl: "new" });
-    expect(await gh.updateComment(9, "hi2")).toEqual({ id: 9, body: "hi2", htmlUrl: "edited" });
+    expect(await gh.createComment(5, "hi")).toEqual({
+      id: 9,
+      body: "hi",
+      htmlUrl: "new",
+      authorLogin: null,
+      authorIsBot: false,
+    });
+    expect(await gh.updateComment(9, "hi2")).toEqual({
+      id: 9,
+      body: "hi2",
+      htmlUrl: "edited",
+      authorLogin: null,
+      authorIsBot: false,
+    });
     expect(calls.at(-1)).toMatchObject({ method: "PATCH", body: { body: "hi2" } });
   });
 
-  it("sets labels with one PUT", async () => {
+  it("adds labels without replacing the set, and tolerates removing an absent one", async () => {
     const { calls, fetchImpl } = fakeFetch({
-      "PUT /repos/o/r/issues/5/labels": () => ({ body: [] }),
+      "POST /repos/o/r/issues/5/labels": () => ({ body: [] }),
+      "DELETE /repos/o/r/issues/5/labels/needs-triage": () => ({ body: [] }),
     });
-    await createGitHubClient({ token: "t", repo: "o/r", fetch: fetchImpl }).setLabels(5, [
-      "a",
-      "b",
-    ]);
-    expect(calls[0]).toMatchObject({ method: "PUT", body: { labels: ["a", "b"] } });
+    const gh = createGitHubClient({ token: "t", repo: "o/r", fetch: fetchImpl });
+    await gh.addLabels(5, ["a", "b"]);
+    expect(calls[0]).toMatchObject({ method: "POST", body: { labels: ["a", "b"] } });
+    await gh.removeLabel(5, "needs-triage");
+    expect(calls[1]).toMatchObject({ method: "DELETE" });
+
+    // A label someone else already removed is the outcome we wanted, not an error.
+    const gone = fakeFetch({
+      "DELETE /repos/o/r/issues/5/labels/gone": () => ({ status: 404, body: { message: "x" } }),
+    });
+    await expect(
+      createGitHubClient({ token: "t", repo: "o/r", fetch: gone.fetchImpl }).removeLabel(5, "gone"),
+    ).resolves.toBeUndefined();
   });
 
   it("throws a GitHubError with the API message", async () => {

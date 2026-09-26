@@ -51,7 +51,9 @@ async function collect(options: EvalOptions): Promise<Sample[]> {
   const { gh, config, cacheDir } = options;
   const limit = options.limit ?? 250;
   const perLabel = Math.ceil(limit / 4);
-  const dir = join(cacheDir, "issues");
+  // Namespaced by repo: event histories keyed on issue number alone were
+  // reused across repositories that share issue numbers.
+  const dir = join(cacheDir, "issues", options.repo.replace("/", "__"));
   mkdirSync(dir, { recursive: true });
   const seen = new Map<number, Sample>();
 
@@ -91,7 +93,8 @@ async function collect(options: EvalOptions): Promise<Sample[]> {
 function predict(report: Report, config: ResolvedConfig): Prediction {
   const priority = report.results.find((r) => r.id === "priority");
   const repro = report.results.find((r) => r.id === "reproduction");
-  const pLabel = priority?.labels.find((l) => /^p[0-3]/.test(l));
+  const priorityNames = new Set(PRIORITY_SLOTS.map((slot) => config.labels[slot]));
+  const pLabel = priority?.labels.find((l) => priorityNames.has(l));
   const pSlot = pLabel ? (PRIORITY_SLOTS.find((s) => config.labels[s] === pLabel) ?? null) : null;
   const arguesEvidence =
     priority?.verdict.status !== "skipped"

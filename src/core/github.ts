@@ -7,6 +7,9 @@ export interface IssueComment {
   id: number;
   body: string;
   htmlUrl: string;
+  /** Login of whoever wrote it, and whether GitHub calls them a Bot. */
+  authorLogin: string | null;
+  authorIsBot: boolean;
 }
 
 export interface ListedIssue extends Issue {
@@ -19,8 +22,14 @@ export interface IssueClient {
   listComments(number: number): Promise<IssueComment[]>;
   createComment(number: number, body: string): Promise<IssueComment>;
   updateComment(id: number, body: string): Promise<IssueComment>;
-  /** Replaces the label set in one call, so add+remove is atomic. */
-  setLabels(number: number, labels: string[]): Promise<void>;
+  /**
+   * Adds labels without touching the rest. Deliberately not a PUT of the whole
+   * set: that races a human editing labels while the model is thinking, and
+   * silently reverts their edit to a snapshot read seconds earlier.
+   */
+  addLabels(number: number, labels: string[]): Promise<void>;
+  /** Removes one label, tolerating its absence. */
+  removeLabel(number: number, label: string): Promise<void>;
   /** Issues (never PRs) carrying `label`, newest first; `since` filters on updated_at. */
   listIssues(query: {
     label: string;
@@ -78,6 +87,7 @@ interface RawComment {
   id: number;
   body: string | null;
   html_url: string;
+  user?: { login?: string; type?: string } | null;
 }
 
 export function createGitHubClient(options: GitHubClientOptions): IssueClient {
@@ -86,7 +96,7 @@ export function createGitHubClient(options: GitHubClientOptions): IssueClient {
   const issuesPath = `/repos/${options.repo}/issues`;
 
   async function request<T>(
-    method: "GET" | "POST" | "PATCH" | "PUT",
+    method: "DELETE" | "GET" | "POST" | "PATCH" | "PUT",
     path: string,
     body?: unknown,
   ): Promise<T> {
@@ -118,6 +128,8 @@ export function createGitHubClient(options: GitHubClientOptions): IssueClient {
     id: c.id,
     body: c.body ?? "",
     htmlUrl: c.html_url,
+    authorLogin: c.user?.login ?? null,
+    authorIsBot: c.user?.type === "Bot",
   });
   const toIssue = (raw: RawIssue): Issue => ({
     number: raw.number,
@@ -157,8 +169,17 @@ export function createGitHubClient(options: GitHubClientOptions): IssueClient {
         await request<RawComment>("PATCH", `${issuesPath}/comments/${id}`, { body }),
       );
     },
-    async setLabels(number, labels) {
-      await request<unknown>("PUT", `${issuesPath}/${number}/labels`, { labels });
+    async addLabels(number, labels) {
+      if (labels.length === 0) return;
+      await request("POST", `${issuesPath}/${number}/labels`, { labels });
+    },
+    async removeLabel(number, label) {
+      try {
+        await request("DELETE", `${issuesPath}/${number}/labels/${encodeURIComponent(label)}`);
+      } catch (error) {
+        // Already gone is the outcome we wanted.
+        if (!(error instanceof GitHubError) || error.status !== 404) throw error;
+      }
     },
     async listIssues({ label, since, limit }) {
       const out: ListedIssue[] = [];
