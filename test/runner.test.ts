@@ -70,44 +70,28 @@ describe("runTriage on recorded fixtures (offline)", () => {
 
   it("#10697: untyped, no template — kind comes from the model in the same request", async () => {
     const r = await replay(10697);
-    expect(r.questionsAsked).toBe(13); // 6 bug + 2 feature + 4 repro + core:kind
+    // Filed by a rolldown member, so reproduction asks nothing at all:
+    // 6 bug + 2 feature + core:kind, and no repro rubric.
+    expect(r.questionsAsked).toBe(9);
+    expect(effective(r).reproduction).toBe("skipped");
     expect(r.kindSource).toBe("model");
     expect(r.kind).toBe("bug");
     expect(r.kindConfidence).toBeGreaterThan(0);
   });
 
-  it("#10384/#10464: a panic that points at its own source abstains; one with only stripped addresses is asked for a repro", async () => {
-    // Both are thin panic reports with no reproduction. They are separated by
-    // `self_evident`: #10384's panic names a source location a maintainer can
-    // open, while #10464 is an empty title plus a backtrace of `<unknown>`
-    // addresses, which is nothing anyone can act on.
-    const evident = await replay(10384);
-    expect(evident.results[0]).toMatchObject({ effective: "abstained" });
-    expect(evident.results[0]?.verdict).toMatchObject({ gate: "unsure" });
-    expect(evident.plan.add).toEqual([]);
-
-    const opaque = await replay(10464);
-    expect(opaque.results[0]).toMatchObject({ effective: "applied" });
-    expect(opaque.results[0]?.verdict).toMatchObject({ gate: "fail" });
-    expect(opaque.plan.add).toEqual(["needs-reproduction"]);
-
-    // Priority stands on its own either way: a missing reproduction says the
-    // report is hard to verify, not that the problem is less severe, so nothing
-    // is downgraded. Both are crashes, so both take the panic branch.
-    for (const r of [evident, opaque]) {
+  it("#10384/#10464: a crash location is not a reproduction, however precise", async () => {
+    // Both are thin panic reports. #10384 names a source file and line and
+    // #10464 is an `<unknown>` address dump, but neither says what the correct
+    // behaviour would be — you can see where execution stopped, not whether the
+    // input should have been accepted. So both are asked for a reproduction.
+    for (const n of [10384, 10464]) {
+      const r = await replay(n);
+      expect(r.results[0]).toMatchObject({ effective: "applied" });
+      expect(r.results[0]?.verdict).toMatchObject({ gate: "fail" });
+      expect(r.plan.add).toContain("needs-reproduction");
+      // And priority is not held back by it.
       expect(r.results[1]?.downgradedBecause).toEqual([]);
     }
-    const applying = resolveConfig({ modes: "priority=apply" });
-    const applied = await runTriage({
-      issue: loadIssue(10384),
-      config: applying,
-      jev,
-      checks,
-      force: true,
-    });
-    expect(applied.results[1]).toMatchObject({ effective: "applied", downgradedBecause: [] });
-    expect(applied.plan.add).toContain("p2: significant / minor bug");
-    expect(applied.plan.remove).toEqual(["needs-triage"]);
   });
 
   it("short-circuits when needs-triage is absent and force is off", async () => {

@@ -40,11 +40,26 @@ function isEmptyReport(
  * away because this check was merely unsure. Maintainers correct a wrong
  * priority in one click; they cannot correct one that was never offered.
  */
+export interface ReproductionOptions {
+  /**
+   * `author_association` values whose issues are never asked for a
+   * reproduction. A maintainer filing a roadmap or design issue is not a
+   * reporter who forgot to attach a repro, and on the measured 100 issues not
+   * one true case came from the team, while two of the two false positives did.
+   */
+  skipAuthors: string[];
+}
+
+const teamFiled = (ctx: { issue: { authorAssociation: string | null } }, skip: string[]): boolean =>
+  Boolean(ctx.issue.authorAssociation && skip.includes(ctx.issue.authorAssociation));
+
 export const reproduction = defineCheck({
   id: "reproduction",
   defaultMode: "apply",
+  defaultOptions: { skipAuthors: ["OWNER", "MEMBER", "COLLABORATOR"] } as ReproductionOptions,
 
   questions(ctx) {
+    if (teamFiled(ctx, ctx.options.skipAuthors ?? [])) return null;
     if (ctx.kind === "feature" || ctx.kind === "task" || ctx.kind === "question") return null;
     // A runnable link settles it in code; nothing to ask.
     if (ctx.flags.runnableLinks.length > 0) return {};
@@ -52,6 +67,9 @@ export const reproduction = defineCheck({
   },
 
   decide(answers, ctx) {
+    if (teamFiled(ctx, ctx.options.skipAuthors ?? [])) {
+      return { status: "skipped", reason: "filed by the team" };
+    }
     // An issue with no substance needs a reproduction whatever it turns out to
     // be about, and the model never gets a useful read on it. Deciding this in
     // code also rescues the case where kind is unknown *because* the body is

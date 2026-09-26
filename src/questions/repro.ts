@@ -42,26 +42,26 @@ export const reproQuestions = {
   self_evident: noul(
     {
       question:
-        "Could a maintainer start investigating this from what the report already contains, without the reporter supplying anything further?",
+        "Does this report contain enough for a maintainer to both find the defect and know what the correct behaviour should be, without going back to the reporter?",
       focus:
-        "Judge `issue.sections`. Ask whether the report carries its own evidence, not whether that evidence is a set of steps.",
+        "Judge `issue.sections`. Ask whether a maintainer could write the fix *and* a test asserting the right result, from what is written here.",
     },
     {
       true: {
-        what: "The report quotes or links the thing that is wrong, so a maintainer can go straight to it: conflicting type or API declarations, published package metadata, a named test or file in this project, a linked CI run of this project, or a panic pointing at a specific source location.",
+        what: "The report carries the answer as well as the fault: declarations that contradict each other so the correct one is visible, published metadata measured against a documented requirement, a named failing test in this project that already asserts the expected result, or a linked run of this project's own CI.",
         examples: [
-          "quotes the two type declarations that are incompatible",
-          "links the published package.json that is missing a field",
+          "quotes the two type declarations that are incompatible, and the one rollup ships",
+          "links the published package.json and names the field the spec requires",
           "names the failing test in this repository and the run that failed",
         ],
       },
       false: {
-        what: "The evidence is a symptom inside the reporter's own project, so a maintainer has nothing of their own to look at until the reporter provides more.",
+        what: "The report localises the fault but leaves the intended behaviour open, or the evidence is a symptom inside the reporter's own project.",
         not_for:
-          "A stack trace from the reporter's bundle, a version matrix, or a description of their app is not evidence a maintainer can start from.",
+          "A crash location is not enough on its own. A panic naming a file and line says where execution stopped, not whether the input should have been accepted — the fix could be to reject it cleanly or to support it, and nothing here decides which.",
         examples: [
+          "panicked at src/utils.rs:397, invalid glob pattern '*.js'",
           "our SSR build 500s, here is the stack from our own output",
-          "our CI crashes about one build in ten",
         ],
       },
     },

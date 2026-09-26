@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { reproduction } from "../src/checks/reproduction.ts";
 import type { Ctx, ReproLink } from "../src/core/types.ts";
-import { answers, ctx, flags, parsed, scoreAnswer } from "./support.ts";
+import { answers, ctx, flags, issue, parsed, scoreAnswer } from "./support.ts";
+
+const DEFAULT_SKIP = ["OWNER", "MEMBER", "COLLABORATOR"];
 
 const R = "reproduction";
 const repl: ReproLink = {
@@ -150,5 +152,37 @@ describe("reproduction.decide", () => {
     expect(v).toMatchObject({
       note: "no reproduction found; template fields missing: system_info",
     });
+  });
+});
+
+describe("reproduction — issues filed by the team", () => {
+  const member = (assoc: string) =>
+    ctx({
+      issue: { ...issue(), authorAssociation: assoc },
+      options: { skipAuthors: DEFAULT_SKIP },
+    });
+
+  it("asks nothing and skips for OWNER, MEMBER and COLLABORATOR", () => {
+    for (const assoc of DEFAULT_SKIP) {
+      expect(reproduction.questions(member(assoc))).toBeNull();
+      expect(reproduction.decide(answers(R, {}), member(assoc))).toEqual({
+        status: "skipped",
+        reason: "filed by the team",
+      });
+    }
+  });
+
+  it("still asks an outside reporter", () => {
+    for (const assoc of ["CONTRIBUTOR", "NONE", "FIRST_TIME_CONTRIBUTOR"]) {
+      expect(reproduction.questions(member(assoc))).not.toBeNull();
+    }
+  });
+
+  it("asks everyone when the list is empty", () => {
+    const none = ctx({
+      issue: { ...issue(), authorAssociation: "MEMBER" },
+      options: { skipAuthors: [] },
+    });
+    expect(reproduction.questions(none)).not.toBeNull();
   });
 });

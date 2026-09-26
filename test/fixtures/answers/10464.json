@@ -1,6 +1,6 @@
 {
   "label": "10464",
-  "hash": "3babde4e2ecaf9e9e1a7057d",
+  "hash": "e81e0ba26625d26151ce7a20",
   "model": "jev-1.13.0",
   "questionKeys": [
     "reproduction:runnable",
@@ -17,7 +17,7 @@
     "priority:panic_reach"
   ],
   "usage": {
-    "input_tokens": 4118,
+    "input_tokens": 4169,
     "output_tokens": 252
   },
   "answers": {
@@ -27,12 +27,12 @@
     },
     "reproduction:self_evident": {
       "type": "noul",
-      "noul": 0.59
+      "noul": 0.08
     },
     "reproduction:repro_quality": {
       "type": "score",
-      "score": 1.89,
-      "confidence": 0.88,
+      "score": 1.86,
+      "confidence": 0.85,
       "legend": {
         "0": "Only says something is broken or pastes an error, with no code, no steps, and no description of the project setup.",
         "1": "Names the feature, option, or error and describes the project loosely, but gives no code and no steps a maintainer could follow.",
@@ -40,9 +40,9 @@
         "3": "Gives everything needed to run it: the input code or config plus the command or steps, or a self-contained snippet with the observed and expected output, so a maintainer can reproduce it without guessing."
       },
       "probabilities": {
-        "0": 0.05,
+        "0": 0.07,
         "1": 0.01,
-        "2": 0.93,
+        "2": 0.92,
         "3": 0
       }
     },
@@ -56,11 +56,11 @@
     },
     "priority:mainstream": {
       "type": "noul",
-      "noul": 0.35
+      "noul": 0.33
     },
     "priority:via_vite": {
       "type": "noul",
-      "noul": 0.94
+      "noul": 0.95
     },
     "priority:workaround": {
       "type": "noul",
@@ -80,7 +80,7 @@
     },
     "priority:panic_reach": {
       "type": "score",
-      "score": 1.62,
+      "score": 1.43,
       "confidence": 0,
       "legend": {
         "0": "Needs a specific operating system feature, CI provider, package manager, hosting sandbox, or a flag the docs mark experimental or opt-in.",
@@ -89,10 +89,10 @@
         "3": "Happens in an ordinary build with common options and ordinary code, with nothing unusual required to reach it."
       },
       "probabilities": {
-        "0": 0.39,
+        "0": 0.46,
         "1": 0.03,
-        "2": 0.16,
-        "3": 0.42
+        "2": 0.14,
+        "3": 0.37
       }
     }
   }

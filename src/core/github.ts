@@ -63,6 +63,7 @@ interface RawIssue {
   html_url: string;
   labels: (RawLabel | string)[];
   type?: { name?: string } | null;
+  author_association?: string | null;
   pull_request?: unknown;
 }
 interface RawListedIssue extends RawIssue {
@@ -125,6 +126,7 @@ export function createGitHubClient(options: GitHubClientOptions): IssueClient {
     typeName: raw.type?.name ?? null,
     labels: raw.labels.map((l) => (typeof l === "string" ? l : l.name)),
     htmlUrl: raw.html_url,
+    authorAssociation: raw.author_association ?? null,
   });
 
   return {

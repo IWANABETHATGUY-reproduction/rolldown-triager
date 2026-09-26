@@ -49,6 +49,7 @@ describe("createGitHubClient", () => {
       typeName: "Bug",
       labels: ["needs-triage", "extra"],
       htmlUrl: "u",
+      authorAssociation: null,
     });
     expect(calls[0]?.method).toBe("GET");
   });

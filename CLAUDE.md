@@ -58,10 +58,15 @@ other check when reproduction failed _or was merely unsure_, throwing away 19 of
 maintainer fixes a wrong priority in one click, so the cost of offering one is far below the cost of silence.
 
 **The reproduction check turns on runnability, not writing quality.** `runnable` asks whether a maintainer
-could run the report as written; `self_evident` asks whether they could start from its evidence anyway
-(quoted type declarations, published metadata, a test in this repo) — that axis is what keeps precision at
+could run the report as written; `self_evident` asks whether the report settles _both_ the defect and the
+correct behaviour — not merely where the fault is. A panic naming a file and line localises the crash but
+never says whether the input should have been rejected or supported, so it is explicitly `not_for`; an
+earlier draft accepted it and waved through reports with no reproduction at all — that axis is what keeps precision at
 1.00, and every false positive before it existed was a report of that shape. A body under 80 characters with
-no link is labelled in code, without the model. Re-tune with `pnpm cli run --json` over a labelled set and
+no link is labelled in code, without the model, and an issue whose `author_association` is OWNER/MEMBER/
+COLLABORATOR is skipped entirely (`options.reproduction.skipAuthors`) — a maintainer filing a roadmap issue
+is not a reporter who forgot a repro. Together those two give precision 1.00 / recall 1.00 on the 100-issue
+set; treat that as fitted, not as a result. Re-tune with `pnpm cli run --json` over a labelled set and
 compare against `.cache/compare/`; do not tune `repro_quality`, which is now only a secondary gate.
 
 **Crashes get their own priority branch** (`src/questions/panic.ts`, `decidePanic`). Every panic is

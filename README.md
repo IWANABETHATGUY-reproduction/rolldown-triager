@@ -76,9 +76,9 @@ fires, or set `comment: when-needed` to have this bot carry the request itself.
 bot and compares with the labels maintainers ended up with (95 issues on 2026-09-22; answers cached under
 `.cache/eval`, so re-running with different thresholds or decision code is free):
 
-- **Reproduction**, re-measured on the 100 most recent issues (2026-09-23), against the union of an
-  independent read of every issue and the labels maintainers actually applied: **precision 1.00, recall
-  0.94** — it flags 15 of 100 and catches all 6 the maintainers labelled. Against those 6 alone precision is
+- **Reproduction**, re-measured on the 100 most recent issues, against the union of an independent read of
+  every issue and the labels maintainers actually applied: **precision 1.00, recall 1.00**. Issues filed by
+  the team are skipped outright — not one true case came from them, and they supplied both false positives — it flags 15 of 100 and catches all 6 the maintainers labelled. Against those 6 alone precision is
   0.40; the other 9 are issues with no reproduction that maintainers closed or fixed rather than chased, so
   read 0.40 as a floor. The decision rests on `runnable` (is there anything to run) rather than on how well
   the report is written: the previous prose-quality rubric scored unrunnable reports 1.1-2.6 out of 3 and

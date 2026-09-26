@@ -51,6 +51,7 @@ export const issue = (over: Partial<Issue> = {}): Issue => ({
   typeName: "Bug",
   labels: ["needs-triage"],
   htmlUrl: "https://github.com/o/r/issues/1",
+  authorAssociation: "NONE",
   ...over,
 });
 

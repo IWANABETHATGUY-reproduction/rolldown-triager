@@ -3,6 +3,7 @@
   "title": "[Panic]: thread 'rolldown-worker' (90450065) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/oxc_index-5.0.0/src/indexing.rs:38:10",
   "body": "### Panic message\n\n```Shell\nRolldown panicked. This is a bug in Rolldown, not your code.\n\nthread 'rolldown-worker' (90450065) panicked at /Users/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/oxc_index-5.0.0/src/indexing.rs:38:10:\nindex out of bounds: the len is 1 but the index is 1\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\nPlease report this issue at: https://github.com/rolldown/rolldown/issues/new?template=panic_report.yml\n```\n\n### Reproduction\n\nhttps://github.com/btea/rolldown-panic/tree/panic-two\n\n1. Run `pnpm dev` directly and then open your browser.\n2. Comment out the third line of code in the src/main.ts file, then save it, and you will see the error.\n\n### System Info\n\n```Shell\nSystem:\n    OS: macOS 14.4.1\n    CPU: (8) arm64 Apple M3\n    Memory: 143.34 MB / 16.00 GB\n    Shell: 3.2.57 - /bin/sh\n  Binaries:\n    Node: 24.18.0 - /Users/xxx/.vite-plus/js_runtime/node/24.18.0/bin/node\n    npm: 11.16.0 - /Users/xxx/.vite-plus/js_runtime/node/24.18.0/bin/npm\n    pnpm: 11.0.3 - /Users/xxx/.vite-plus/bin/pnpm\n  Browsers:\n    Chrome: 149.0.7827.201\n    Chrome Canary: 152.0.7929.0\n    Firefox: 136.0.4\n    Safari: 17.4.1\n```\n\n### Additional context\n\n_No response_",
   "typeName": "Bug",
+  "authorAssociation": "CONTRIBUTOR",
   "labels": [
     "p1: important",
     "scope: dev"

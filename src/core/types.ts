@@ -22,6 +22,11 @@ export interface Issue {
   typeName: string | null;
   labels: string[];
   htmlUrl: string;
+  /**
+   * GitHub's `author_association`: OWNER / MEMBER / COLLABORATOR / CONTRIBUTOR /
+   * NONE. Already on the issue payload, so it costs no extra request.
+   */
+  authorAssociation: string | null;
 }
 
 export type ReproLinkKind =

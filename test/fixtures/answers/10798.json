@@ -1,6 +1,6 @@
 {
   "label": "10798",
-  "hash": "2088b6de94a16c5ff1aa2eff",
+  "hash": "fe4c7a427d254a16e7686b78",
   "model": "jev-1.13.0",
   "questionKeys": [
     "reproduction:runnable",
@@ -15,22 +15,22 @@
     "priority:argues_priority"
   ],
   "usage": {
-    "input_tokens": 3905,
+    "input_tokens": 3956,
     "output_tokens": 213
   },
   "answers": {
     "reproduction:runnable": {
       "type": "noul",
-      "noul": 0.35
+      "noul": 0.36
     },
     "reproduction:self_evident": {
       "type": "noul",
-      "noul": 0.61
+      "noul": 0.33
     },
     "reproduction:repro_quality": {
       "type": "score",
-      "score": 2.87,
-      "confidence": 0.87,
+      "score": 2.85,
+      "confidence": 0.85,
       "legend": {
         "0": "Only says something is broken or pastes an error, with no code, no steps, and no description of the project setup.",
         "1": "Names the feature, option, or error and describes the project loosely, but gives no code and no steps a maintainer could follow.",
@@ -40,8 +40,8 @@
       "probabilities": {
         "0": 0,
         "1": 0,
-        "2": 0.13,
-        "3": 0.87
+        "2": 0.15,
+        "3": 0.85
       }
     },
     "reproduction:explains_no_repro": {
@@ -62,7 +62,7 @@
     },
     "priority:workaround": {
       "type": "noul",
-      "noul": 0.08
+      "noul": 0.07
     },
     "priority:regression": {
       "type": "noul",

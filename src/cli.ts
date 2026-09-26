@@ -176,6 +176,7 @@ async function cmdRecord(gh: IssueClient): Promise<void> {
       title: issue.title,
       body: issue.body,
       typeName: issue.typeName,
+      authorAssociation: issue.authorAssociation,
       labels: issue.labels,
       htmlUrl: issue.htmlUrl,
     };

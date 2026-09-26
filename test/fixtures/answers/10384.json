@@ -1,6 +1,6 @@
 {
   "label": "10384",
-  "hash": "4374835c83bc053cf8c85e88",
+  "hash": "d1563af48b8a96444ab1e2fb",
   "model": "jev-1.13.0",
   "questionKeys": [
     "reproduction:runnable",
@@ -17,22 +17,22 @@
     "priority:panic_reach"
   ],
   "usage": {
-    "input_tokens": 3317,
+    "input_tokens": 3368,
     "output_tokens": 252
   },
   "answers": {
     "reproduction:runnable": {
       "type": "noul",
-      "noul": 0.04
+      "noul": 0.03
     },
     "reproduction:self_evident": {
       "type": "noul",
-      "noul": 0.79
+      "noul": 0.1
     },
     "reproduction:repro_quality": {
       "type": "score",
-      "score": 1.57,
-      "confidence": 0.57,
+      "score": 1.58,
+      "confidence": 0.58,
       "legend": {
         "0": "Only says something is broken or pastes an error, with no code, no steps, and no description of the project setup.",
         "1": "Names the feature, option, or error and describes the project loosely, but gives no code and no steps a maintainer could follow.",
@@ -40,15 +40,15 @@
         "3": "Gives everything needed to run it: the input code or config plus the command or steps, or a self-contained snippet with the observed and expected output, so a maintainer can reproduce it without guessing."
       },
       "probabilities": {
-        "0": 0.14,
-        "1": 0.16,
+        "0": 0.13,
+        "1": 0.17,
         "2": 0.7,
         "3": 0
       }
     },
     "reproduction:explains_no_repro": {
       "type": "noul",
-      "noul": 0.06
+      "noul": 0.05
     },
     "priority:broken": {
       "type": "noul",
@@ -56,7 +56,7 @@
     },
     "priority:mainstream": {
       "type": "noul",
-      "noul": 0.3
+      "noul": 0.31
     },
     "priority:via_vite": {
       "type": "noul",
@@ -76,12 +76,12 @@
     },
     "priority:panic_invalid_input": {
       "type": "noul",
-      "noul": 0.16
+      "noul": 0.17
     },
     "priority:panic_reach": {
       "type": "score",
       "score": 1.3,
-      "confidence": 0.58,
+      "confidence": 0.57,
       "legend": {
         "0": "Needs a specific operating system feature, CI provider, package manager, hosting sandbox, or a flag the docs mark experimental or opt-in.",
         "1": "Needs a named third-party package, an unusual character or syntax, or a precise sequence of actions such as interrupting a watch build at the right moment.",
