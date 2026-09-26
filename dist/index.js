@@ -981,11 +981,21 @@ function decidePanic(answers, ctx) {
 	const reach = answers.score("panic_reach");
 	if (!reach) return missing("panic_reach");
 	evidence[PANIC_EVIDENCE_LABELS.panic_reach] = `${reach.score.toFixed(1)}/${reach.top}`;
-	if (reach.confidence < t.panicConfidence) return {
-		status: "abstained",
-		note: "unsure how ordinary the crash conditions are",
-		evidence
-	};
+	if (reach.confidence < t.panicConfidence) {
+		const fallback = ctx.options.panicFallback;
+		if (!fallback || fallback === "off" || fallback === "p0") return {
+			status: "abstained",
+			note: "unsure how ordinary the crash conditions are",
+			evidence
+		};
+		return {
+			status: "decided",
+			add: [fallback],
+			note: `crash, too unclear to place; defaulting to ${fallback}`,
+			evidence,
+			humanNote: "the model could not place this crash; these skew more severe, not less"
+		};
+	}
 	let verdict;
 	if (reach.score >= t.panicReachP1) verdict = {
 		status: "decided",
@@ -1049,11 +1059,14 @@ function decideFeature(answers, ctx) {
 const priority = defineCheck({
 	id: "priority",
 	defaultMode: "apply",
-	defaultOptions: { applyLabels: [
-		"p1",
-		"p2",
-		"p3"
-	] },
+	defaultOptions: {
+		applyLabels: [
+			"p1",
+			"p2",
+			"p3"
+		],
+		panicFallback: "p1"
+	},
 	questions(ctx) {
 		const panic = ctx.flags.isPanic ? panicQuestions : {};
 		switch (ctx.kind) {

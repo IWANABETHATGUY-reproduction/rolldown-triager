@@ -15,6 +15,15 @@ import { defineCheck } from "../core/types.ts";
 export interface PriorityOptions {
   /** Priorities the check may apply on its own; anything else is suggest-only. p0 is never allowed. */
   applyLabels: PrioritySlot[];
+  /**
+   * What to call a crash whose `panic_reach` score is not confident enough to
+   * place. `"off"` abstains. Measured over the 40 panics rolldown has
+   * prioritised, these abstentions are 73% p0 or p1 — they cluster at the
+   * p1/p2 boundary, where high reach means ordinary conditions means severe —
+   * so the fallback errs upward. p1 is right 47% of the time and within one
+   * level 93%; p2 would be right 20% and under-rate 11 of 15.
+   */
+  panicFallback: PrioritySlot | "off";
 }
 
 type Tri = "yes" | "no" | "unsure";
@@ -140,7 +149,21 @@ function decidePanic(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
   if (!reach) return missing("panic_reach");
   evidence[PANIC_EVIDENCE_LABELS.panic_reach] = `${reach.score.toFixed(1)}/${reach.top}`;
   if (reach.confidence < t.panicConfidence) {
-    return { status: "abstained", note: "unsure how ordinary the crash conditions are", evidence };
+    const fallback = ctx.options.panicFallback;
+    if (!fallback || fallback === "off" || fallback === "p0") {
+      return {
+        status: "abstained",
+        note: "unsure how ordinary the crash conditions are",
+        evidence,
+      };
+    }
+    return {
+      status: "decided",
+      add: [fallback],
+      note: `crash, too unclear to place; defaulting to ${fallback}`,
+      evidence,
+      humanNote: "the model could not place this crash; these skew more severe, not less",
+    };
   }
 
   let verdict: Decided;
@@ -208,7 +231,7 @@ function decideFeature(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
 export const priority = defineCheck<PriorityOptions>({
   id: "priority",
   defaultMode: "apply",
-  defaultOptions: { applyLabels: ["p1", "p2", "p3"] },
+  defaultOptions: { applyLabels: ["p1", "p2", "p3"], panicFallback: "p1" },
 
   questions(ctx) {
     // Extra questions cost almost nothing, so a crash report carries the panic

@@ -91,6 +91,11 @@ axes cannot separate them. Over the 40 panics rolldown has prioritised, sorting 
 conditions reaching the crash are gives 60% exact against 32% for the general tree (p1 precision 57%, p2 70%,
 p3 reachable at all for the first time) — at 62% coverage rather than 78%.
 
+A crash the model cannot place falls back to p1 (`options.priority.panicFallback`, `"off"` to abstain
+instead). Those cases cluster at the p1/p2 boundary, where a high reach score means ordinary conditions means
+severe, so on the measured set 73% of them are p0 or p1: p1 is right 47% of the time against 20% for p2, and
+errs toward over-rating. Coverage 62%→95%, exact over the 40 38%→52%.
+
 The bug mapping deliberately deviates from the literal `.github/issue-workflow.md` tree, which sends every
 unusable build to p1 and over-predicts p1 about 2:1: here an unusable build is p1 when it is reached through
 Vite or is a regression, p2 otherwise; usable builds are p3 with a workaround, p2 without.

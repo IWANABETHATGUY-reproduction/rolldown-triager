@@ -70,7 +70,9 @@ CLI, plugin and dev-engine crashes — and p3 was structurally unreachable. Meas
 rolldown has prioritised (`.cache/panics/truth.tsv`), that collapsed 21 of 31 decisions onto p2 at 32% exact.
 The branch sorts on how _ordinary the conditions reaching the crash are_, not how violent it is: 60% exact,
 p1 precision 30%→57%, p2 33%→70%, p3 now reachable at all. `isPanic` matches the crash output (`panicked at`,
-`SIGSEGV`), never the word — a report can discuss panics without being one.
+`SIGSEGV`), never the word — a report can discuss panics without being one. An unplaceable crash falls back
+to p1 (`options.priority.panicFallback`): those abstentions are 73% p0/p1, so the fallback deliberately errs
+upward. Do not change it to p2 without re-measuring — p2 scores 20% there and under-rates 11 of 15.
 
 **Kind resolution.** When kind is unknown, priority asks both branches and reproduction asks its rubric;
 `decide` uses the kind the model settled on. Still one request.

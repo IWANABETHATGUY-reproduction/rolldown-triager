@@ -4,7 +4,7 @@ import { priority, type PriorityOptions } from "../src/checks/priority.ts";
 import { answers, ctx, flags, scoreAnswer } from "./support.ts";
 
 const P = "priority";
-const opts: PriorityOptions = { applyLabels: ["p1", "p2", "p3"] };
+const opts: PriorityOptions = { applyLabels: ["p1", "p2", "p3"], panicFallback: "p1" };
 const bug = (over: Parameters<typeof ctx<PriorityOptions>>[0] = {}) =>
   ctx<PriorityOptions>({ kind: "bug", options: opts, ...over });
 
@@ -97,8 +97,37 @@ describe("priority.decide — panic branch", () => {
     });
   });
 
-  it("abstains when the reach score is not confident", () => {
-    expect(priority.decide(reach(2.4, 0.2), panic())).toMatchObject({ status: "abstained" });
+  it("falls back rather than abstaining when the reach score is not confident", () => {
+    // These abstentions are 73% p0/p1 on the measured set: they cluster at the
+    // p1/p2 boundary, where a high reach score means ordinary conditions means
+    // severe. So the fallback errs upward, and says so in the note.
+    expect(priority.decide(reach(2.4, 0.2), panic())).toMatchObject({
+      status: "decided",
+      add: ["p1"],
+      note: "crash, too unclear to place; defaulting to p1",
+      humanNote: "the model could not place this crash; these skew more severe, not less",
+    });
+  });
+
+  it("abstains instead when the fallback is off", () => {
+    const off = panic({ options: { applyLabels: ["p1", "p2", "p3"], panicFallback: "off" } });
+    expect(priority.decide(reach(2.4, 0.2), off)).toMatchObject({
+      status: "abstained",
+      note: "unsure how ordinary the crash conditions are",
+    });
+  });
+
+  it("never falls back to p0", () => {
+    const zero = panic({ options: { applyLabels: ["p1", "p2", "p3"], panicFallback: "p0" } });
+    expect(priority.decide(reach(2.4, 0.2), zero)).toMatchObject({ status: "abstained" });
+  });
+
+  it("only falls back for an unplaceable reach score, not a missing answer", () => {
+    // A crash whose `panic_invalid_input` never came back is a different
+    // failure: nothing was judged, so there is nothing to be uncertain about.
+    expect(
+      priority.decide(answers(P, { panic_reach: scoreAnswer(2.4, 0.9, 3) }), panic()),
+    ).toMatchObject({ status: "abstained" });
   });
 
   it("still lets a report that argues its own priority only suggest", () => {
@@ -256,7 +285,7 @@ describe("priority.decide — bug branch (measured mapping over issue-workflow.m
   it("honours applyLabels", () => {
     const v = priority.decide(
       answers(P, { broken: 0.9, via_vite: 0.9, regression: 0.1, mainstream: 0.1 }),
-      bug({ options: { applyLabels: ["p2", "p3"] } }),
+      bug({ options: { applyLabels: ["p2", "p3"], panicFallback: "p1" } }),
     );
     expect(v).toMatchObject({ add: ["p1"], forceSuggest: "p1 is suggest-only by configuration" });
   });
