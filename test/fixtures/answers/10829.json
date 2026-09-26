@@ -1,6 +1,6 @@
 {
   "label": "10829",
-  "hash": "19a989768042ce3e600dead6",
+  "hash": "a94b0f0a324665861b0f25a6",
   "model": "jev-1.13.0",
   "questionKeys": [
     "priority:broken",
@@ -8,11 +8,13 @@
     "priority:via_vite",
     "priority:workaround",
     "priority:regression",
-    "priority:argues_priority"
+    "priority:argues_priority",
+    "priority:panic_invalid_input",
+    "priority:panic_reach"
   ],
   "usage": {
-    "input_tokens": 2085,
-    "output_tokens": 123
+    "input_tokens": 2519,
+    "output_tokens": 162
   },
   "answers": {
     "priority:broken": {
@@ -25,11 +27,11 @@
     },
     "priority:via_vite": {
       "type": "noul",
-      "noul": 0.39
+      "noul": 0.44
     },
     "priority:workaround": {
       "type": "noul",
-      "noul": 0.48
+      "noul": 0.51
     },
     "priority:regression": {
       "type": "noul",
@@ -38,6 +40,27 @@
     "priority:argues_priority": {
       "type": "noul",
       "noul": 0.04
+    },
+    "priority:panic_invalid_input": {
+      "type": "noul",
+      "noul": 0.06
+    },
+    "priority:panic_reach": {
+      "type": "score",
+      "score": 1.53,
+      "confidence": 0.41,
+      "legend": {
+        "0": "Needs a specific operating system feature, CI provider, package manager, hosting sandbox, or a flag the docs mark experimental or opt-in.",
+        "1": "Needs a named third-party package, an unusual character or syntax, or a precise sequence of actions such as interrupting a watch build at the right moment.",
+        "2": "Needs a documented option or a recognisable code pattern, in an otherwise ordinary build.",
+        "3": "Happens in an ordinary build with common options and ordinary code, with nothing unusual required to reach it."
+      },
+      "probabilities": {
+        "0": 0.03,
+        "1": 0.64,
+        "2": 0.1,
+        "3": 0.23
+      }
     }
   }
 }

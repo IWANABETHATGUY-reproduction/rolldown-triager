@@ -31,6 +31,11 @@ const CAPS: Record<SectionKey, SanitizeOptions> = {
 /** ~10k tokens; well under the 32k state budget even with every question attached. */
 const STATE_BUDGET = 40_000;
 
+// Matches the crash *output*, not the word: a report can discuss panics at
+// length without being one ("confirmed not a panic — rolldown's panic hook ...").
+const PANIC_RE =
+  /panicked at|rolldown panicked|\bSIGSEGV\b|\bSIGBUS\b|\bsegmentation fault\b|\bbus error\b/i;
+
 const PRIORITY_WORDS_RE =
   /\b(p[0-3]|urgent(ly)?|blocker|top priority|highest priority|asap|please prioriti[sz]e|show[- ]?stopper)\b/i;
 
@@ -76,6 +81,12 @@ export function buildState(
     templateFollowed: parsed.template !== "none" && parsed.requiredMissing.length === 0,
     runnableLinks,
     replInvalid: runnableLinks.length === 0 && parsed.links.some((l) => l.kind === "repl" && !l.ok),
+    // Half the crash reports predate the panic template or were filed as
+    // `[Bug]:`, so the template alone misses them.
+    isPanic:
+      parsed.template === "panic" ||
+      Boolean(parsed.sections.panic_message) ||
+      PANIC_RE.test(`${issue.title}\n${issue.body}`),
     truncated,
   };
   return { state, flags };

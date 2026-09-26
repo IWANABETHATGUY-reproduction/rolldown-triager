@@ -1,5 +1,6 @@
 import { BUG_EVIDENCE_LABELS, bugQuestions } from "../questions/bug.ts";
 import { FEATURE_EVIDENCE_LABELS, featureQuestions } from "../questions/feature.ts";
+import { PANIC_EVIDENCE_LABELS, panicQuestions } from "../questions/panic.ts";
 import type {
   Answers,
   Ctx,
@@ -110,6 +111,71 @@ function decideBug(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
   return verdict;
 }
 
+/**
+ * Crashes get their own branch. Every panic is `broken: yes`, so the bug tree
+ * can only ever reach p1 or p2 through `via_vite`/`regression` — and those read
+ * low for CLI, plugin and dev-engine crashes, which is how 21 of 31 decisions
+ * collapsed onto p2 while p3 stayed structurally unreachable. What maintainers
+ * actually sort on is how ordinary the conditions are that reach the crash.
+ */
+function decidePanic(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
+  const t = ctx.config.thresholds;
+  const evidence: Evidence = {};
+  const read = reader(answers, t, PANIC_EVIDENCE_LABELS, evidence);
+
+  // Rolldown crashing instead of printing an error is a presentation bug: the
+  // build was going to fail anyway, and nothing correct is broken.
+  const invalid = read("panic_invalid_input");
+  if (invalid === undefined) return missing("panic_invalid_input");
+  if (invalid === "yes") {
+    return {
+      status: "decided",
+      add: ["p3"],
+      note: "crash while rejecting invalid input; an error message is the fix",
+      evidence,
+    };
+  }
+
+  const reach = answers.score("panic_reach");
+  if (!reach) return missing("panic_reach");
+  evidence[PANIC_EVIDENCE_LABELS.panic_reach] = `${reach.score.toFixed(1)}/${reach.top}`;
+  if (reach.confidence < t.panicConfidence) {
+    return { status: "abstained", note: "unsure how ordinary the crash conditions are", evidence };
+  }
+
+  let verdict: Decided;
+  if (reach.score >= t.panicReachP1) {
+    verdict = {
+      status: "decided",
+      add: ["p1"],
+      note: "crash in an ordinary build",
+      evidence,
+    };
+  } else if (reach.score >= t.panicReachP2) {
+    verdict = {
+      status: "decided",
+      add: ["p2"],
+      note: "crash behind a particular package, syntax or sequence",
+      evidence,
+    };
+  } else {
+    verdict = {
+      status: "decided",
+      add: ["p3"],
+      note: "crash behind a specific platform, host or experimental flag",
+      evidence,
+    };
+  }
+
+  const argues = answers.noul("argues_priority");
+  if (argues !== undefined)
+    evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
+  if (ctx.flags.priorityWords || (argues ?? 0) >= t.arguesPriority) {
+    verdict = { ...verdict, forceSuggest: "the report argues its own priority" };
+  }
+  return verdict;
+}
+
 function decideFeature(answers: Answers, ctx: Ctx<PriorityOptions>): Verdict {
   const t = ctx.config.thresholds;
   const evidence: Evidence = {};
@@ -145,14 +211,17 @@ export const priority = defineCheck<PriorityOptions>({
   defaultOptions: { applyLabels: ["p1", "p2", "p3"] },
 
   questions(ctx) {
+    // Extra questions cost almost nothing, so a crash report carries the panic
+    // pair as well; `decide` picks the branch.
+    const panic = ctx.flags.isPanic ? panicQuestions : {};
     switch (ctx.kind) {
       case "bug":
-        return bugQuestions;
+        return { ...bugQuestions, ...panic };
       case "feature":
         return featureQuestions;
       case "unknown":
         // Ask both branches now; `decide` uses whichever kind the model settles on.
-        return { ...bugQuestions, ...featureQuestions };
+        return { ...bugQuestions, ...featureQuestions, ...panic };
       default:
         return null;
     }
@@ -162,7 +231,7 @@ export const priority = defineCheck<PriorityOptions>({
     let verdict: Verdict;
     switch (ctx.kind) {
       case "bug":
-        verdict = decideBug(answers, ctx);
+        verdict = ctx.flags.isPanic ? decidePanic(answers, ctx) : decideBug(answers, ctx);
         break;
       case "feature":
         verdict = decideFeature(answers, ctx);

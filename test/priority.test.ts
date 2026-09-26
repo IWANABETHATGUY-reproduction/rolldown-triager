@@ -26,6 +26,108 @@ describe("priority.questions", () => {
     expect(priority.questions(ctx({ kind: "task" }))).toBeNull();
     expect(priority.questions(ctx({ kind: "question" }))).toBeNull();
   });
+
+  it("adds the panic pair when the report is a crash", () => {
+    const keys = Object.keys(priority.questions(panic()) ?? {});
+    expect(keys).toContain("panic_invalid_input");
+    expect(keys).toContain("panic_reach");
+    // the bug axes still ride along in the same request
+    expect(keys).toContain("broken");
+    expect(keys).toContain("argues_priority");
+  });
+});
+
+const panic = (over: Parameters<typeof ctx<PriorityOptions>>[0] = {}) =>
+  ctx<PriorityOptions>({
+    kind: "bug",
+    options: opts,
+    flags: flags({ isPanic: true }),
+    ...over,
+  });
+
+// Every panic is `broken: yes`, so the general tree could only ever reach p1 or
+// p2 through `via_vite`/`regression` — both read low for CLI, plugin and
+// dev-engine crashes. Measured over the 40 panics rolldown has prioritised,
+// 21 of 31 decisions collapsed onto p2 and p3 was unreachable. This branch
+// sorts on how ordinary the conditions are that reach the crash instead.
+describe("priority.decide — panic branch", () => {
+  const reach = (score: number, confidence = 0.9) =>
+    answers(P, {
+      panic_invalid_input: 0.05,
+      panic_reach: scoreAnswer(score, confidence, 3),
+      argues_priority: 0.05,
+    });
+
+  it("calls a crash in an ordinary build p1", () => {
+    expect(priority.decide(reach(2.4), panic())).toMatchObject({
+      status: "decided",
+      add: ["p1"],
+      note: "crash in an ordinary build",
+    });
+  });
+
+  it("calls a crash behind a package, syntax or sequence p2", () => {
+    expect(priority.decide(reach(1.0), panic())).toMatchObject({
+      status: "decided",
+      add: ["p2"],
+    });
+  });
+
+  it("calls a crash behind a platform, host or experimental flag p3", () => {
+    // Unreachable through the general tree: a panic is never `broken: no`.
+    expect(priority.decide(reach(0.2), panic())).toMatchObject({
+      status: "decided",
+      add: ["p3"],
+    });
+  });
+
+  it("calls a crash on invalid input p3 whatever the reach score", () => {
+    const v = priority.decide(
+      answers(P, {
+        panic_invalid_input: 0.92,
+        panic_reach: scoreAnswer(2.8, 0.9, 3),
+        argues_priority: 0.05,
+      }),
+      panic(),
+    );
+    expect(v).toMatchObject({
+      status: "decided",
+      add: ["p3"],
+      note: "crash while rejecting invalid input; an error message is the fix",
+    });
+  });
+
+  it("abstains when the reach score is not confident", () => {
+    expect(priority.decide(reach(2.4, 0.2), panic())).toMatchObject({ status: "abstained" });
+  });
+
+  it("still lets a report that argues its own priority only suggest", () => {
+    const v = priority.decide(
+      answers(P, {
+        panic_invalid_input: 0.05,
+        panic_reach: scoreAnswer(2.4, 0.9, 3),
+        argues_priority: 0.9,
+      }),
+      panic(),
+    );
+    expect(v).toMatchObject({ add: ["p1"], forceSuggest: "the report argues its own priority" });
+  });
+
+  it("leaves a non-panic bug on the general tree", () => {
+    // Same answers, isPanic false: the panic axes are ignored entirely.
+    const v = priority.decide(
+      answers(P, {
+        broken: 0.9,
+        via_vite: 0.9,
+        regression: 0.1,
+        mainstream: 0.1,
+        argues_priority: 0.05,
+        panic_reach: scoreAnswer(0.2, 0.9, 3),
+      }),
+      bug(),
+    );
+    expect(v).toMatchObject({ add: ["p1"], note: "build unusable through Vite" });
+  });
 });
 
 describe("priority.decide — bug branch (measured mapping over issue-workflow.md)", () => {

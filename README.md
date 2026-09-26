@@ -86,6 +86,11 @@ bot and compares with the labels maintainers ended up with (95 issues on 2026-09
 - **Priority, bugs** (54): agrees with maintainers on 57% of the issues it decides, decides 81%; p1 precision
   12/21. **Features** (25): 40%. That is why `priority` defaults to `suggest`.
 
+Crash reports take a separate branch, because a panic is always an unusable build and the Vite/regression
+axes cannot separate them. Over the 40 panics rolldown has prioritised, sorting on how ordinary the
+conditions reaching the crash are gives 60% exact against 32% for the general tree (p1 precision 57%, p2 70%,
+p3 reachable at all for the first time) — at 62% coverage rather than 78%.
+
 The bug mapping deliberately deviates from the literal `.github/issue-workflow.md` tree, which sends every
 unusable build to p1 and over-predicts p1 about 2:1: here an unusable build is p1 when it is reached through
 Vite or is a regression, p2 otherwise; usable builds are p3 with a workaround, p2 without.

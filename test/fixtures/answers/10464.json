@@ -1,6 +1,6 @@
 {
   "label": "10464",
-  "hash": "4dea1f12fcae656791592b67",
+  "hash": "3babde4e2ecaf9e9e1a7057d",
   "model": "jev-1.13.0",
   "questionKeys": [
     "reproduction:runnable",
@@ -12,11 +12,13 @@
     "priority:via_vite",
     "priority:workaround",
     "priority:regression",
-    "priority:argues_priority"
+    "priority:argues_priority",
+    "priority:panic_invalid_input",
+    "priority:panic_reach"
   ],
   "usage": {
-    "input_tokens": 3684,
-    "output_tokens": 213
+    "input_tokens": 4118,
+    "output_tokens": 252
   },
   "answers": {
     "reproduction:runnable": {
@@ -40,13 +42,13 @@
       "probabilities": {
         "0": 0.05,
         "1": 0.01,
-        "2": 0.94,
+        "2": 0.93,
         "3": 0
       }
     },
     "reproduction:explains_no_repro": {
       "type": "noul",
-      "noul": 0.09
+      "noul": 0.08
     },
     "priority:broken": {
       "type": "noul",
@@ -54,7 +56,7 @@
     },
     "priority:mainstream": {
       "type": "noul",
-      "noul": 0.36
+      "noul": 0.35
     },
     "priority:via_vite": {
       "type": "noul",
@@ -71,6 +73,27 @@
     "priority:argues_priority": {
       "type": "noul",
       "noul": 0.03
+    },
+    "priority:panic_invalid_input": {
+      "type": "noul",
+      "noul": 0.06
+    },
+    "priority:panic_reach": {
+      "type": "score",
+      "score": 1.62,
+      "confidence": 0,
+      "legend": {
+        "0": "Needs a specific operating system feature, CI provider, package manager, hosting sandbox, or a flag the docs mark experimental or opt-in.",
+        "1": "Needs a named third-party package, an unusual character or syntax, or a precise sequence of actions such as interrupting a watch build at the right moment.",
+        "2": "Needs a documented option or a recognisable code pattern, in an otherwise ordinary build.",
+        "3": "Happens in an ordinary build with common options and ordinary code, with nothing unusual required to reach it."
+      },
+      "probabilities": {
+        "0": 0.39,
+        "1": 0.03,
+        "2": 0.16,
+        "3": 0.42
+      }
     }
   }
 }

@@ -80,6 +80,8 @@ export interface Flags {
   runnableLinks: ReproLink[];
   /** A REPL link was present but empty or undecodable, and nothing else is runnable. */
   replInvalid: boolean;
+  /** The report is a crash: panic template, a panic section, or a panic in the text. */
+  isPanic: boolean;
   truncated: SectionKey[];
 }
 
@@ -123,6 +125,12 @@ export interface Thresholds {
   /** @deprecated the `runnable` Noul carries no confidence; kept for the sweep. */
   reproConfidence: number;
   /** `usefulness` score at or above this maps a feature to p2 instead of p3. */
+  /** `panic_reach` at or above this is a p1 crash; at or above `panicReachP2`, a p2. */
+  panicReachP1: number;
+  panicReachP2: number;
+  /** Minimum `panic_reach` confidence. Lower than `scoreConfidence`: the rubric
+   *  is inherently fuzzy, and gating it at 0.6 abstained on 18 of 40 panics. */
+  panicConfidence: number;
   usefulnessP2: number;
   workaroundLabel: number;
   arguesPriority: number;

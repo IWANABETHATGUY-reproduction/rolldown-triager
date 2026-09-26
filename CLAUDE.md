@@ -64,6 +64,14 @@ could run the report as written; `self_evident` asks whether they could start fr
 no link is labelled in code, without the model. Re-tune with `pnpm cli run --json` over a labelled set and
 compare against `.cache/compare/`; do not tune `repro_quality`, which is now only a secondary gate.
 
+**Crashes get their own priority branch** (`src/questions/panic.ts`, `decidePanic`). Every panic is
+`broken: yes`, so the general tree could only reach p1/p2 through `via_vite`/`regression` — both read low for
+CLI, plugin and dev-engine crashes — and p3 was structurally unreachable. Measured over the 40 panics
+rolldown has prioritised (`.cache/panics/truth.tsv`), that collapsed 21 of 31 decisions onto p2 at 32% exact.
+The branch sorts on how _ordinary the conditions reaching the crash are_, not how violent it is: 60% exact,
+p1 precision 30%→57%, p2 33%→70%, p3 now reachable at all. `isPanic` matches the crash output (`panicked at`,
+`SIGSEGV`), never the word — a report can discuss panics without being one.
+
 **Kind resolution.** When kind is unknown, priority asks both branches and reproduction asks its rubric;
 `decide` uses the kind the model settled on. Still one request.
 

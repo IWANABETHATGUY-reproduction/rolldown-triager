@@ -67,6 +67,7 @@ export const flags = (over: Partial<Flags> = {}): Flags => ({
   templateFollowed: true,
   runnableLinks: [],
   replInvalid: false,
+  isPanic: false,
   truncated: [],
   ...over,
 });

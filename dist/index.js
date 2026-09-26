@@ -868,6 +868,36 @@ const FEATURE_EVIDENCE_LABELS = {
 	usefulness: "usefulness"
 };
 //#endregion
+//#region src/questions/panic.ts
+const panicQuestions = {
+	panic_invalid_input: noul({
+		question: "Did Rolldown crash while rejecting something the reporter supplied — a malformed pattern, an unsupported option value, a path it cannot accept — where printing a clear error instead of crashing would be the whole fix?",
+		focus: "`issue.sections.panic_message` together with `reproduction` and `actual`."
+	}, {
+		true: {
+			what: "The crash message names the offending input and says what would have been valid; the build was going to fail either way, and only the presentation is wrong.",
+			examples: ["Invalid glob pattern: *.js, it must start with '/' or './'", "In virtual modules, all globs must start with '/'"]
+		},
+		false: {
+			what: "The input was valid and Rolldown failed on its own: an internal invariant, an index out of bounds, an unreachable branch, a symbol or entry it could not resolve, a segfault.",
+			not_for: "An internal assertion that happens to mention a user file is not the reporter supplying something invalid."
+		}
+	}),
+	panic_reach: score({
+		question: "How ordinary are the conditions needed to reach this crash?",
+		focus: "Judge the setup described in `issue.sections`: the options, platform, host, packages and steps required before it happens. Ignore how severe the crash itself is."
+	}, [
+		"Needs a specific operating system feature, CI provider, package manager, hosting sandbox, or a flag the docs mark experimental or opt-in.",
+		"Needs a named third-party package, an unusual character or syntax, or a precise sequence of actions such as interrupting a watch build at the right moment.",
+		"Needs a documented option or a recognisable code pattern, in an otherwise ordinary build.",
+		"Happens in an ordinary build with common options and ordinary code, with nothing unusual required to reach it."
+	])
+};
+const PANIC_EVIDENCE_LABELS = {
+	panic_invalid_input: "invalid input",
+	panic_reach: "reach"
+};
+//#endregion
 //#region src/checks/priority.ts
 /** Reads one Noul and files it in the evidence list as it is consulted. */
 function reader(answers, t, labels, evidence) {
@@ -930,6 +960,59 @@ function decideBug(answers, ctx) {
 	};
 	return verdict;
 }
+/**
+* Crashes get their own branch. Every panic is `broken: yes`, so the bug tree
+* can only ever reach p1 or p2 through `via_vite`/`regression` — and those read
+* low for CLI, plugin and dev-engine crashes, which is how 21 of 31 decisions
+* collapsed onto p2 while p3 stayed structurally unreachable. What maintainers
+* actually sort on is how ordinary the conditions are that reach the crash.
+*/
+function decidePanic(answers, ctx) {
+	const t = ctx.config.thresholds;
+	const evidence = {};
+	const invalid = reader(answers, t, PANIC_EVIDENCE_LABELS, evidence)("panic_invalid_input");
+	if (invalid === void 0) return missing("panic_invalid_input");
+	if (invalid === "yes") return {
+		status: "decided",
+		add: ["p3"],
+		note: "crash while rejecting invalid input; an error message is the fix",
+		evidence
+	};
+	const reach = answers.score("panic_reach");
+	if (!reach) return missing("panic_reach");
+	evidence[PANIC_EVIDENCE_LABELS.panic_reach] = `${reach.score.toFixed(1)}/${reach.top}`;
+	if (reach.confidence < t.panicConfidence) return {
+		status: "abstained",
+		note: "unsure how ordinary the crash conditions are",
+		evidence
+	};
+	let verdict;
+	if (reach.score >= t.panicReachP1) verdict = {
+		status: "decided",
+		add: ["p1"],
+		note: "crash in an ordinary build",
+		evidence
+	};
+	else if (reach.score >= t.panicReachP2) verdict = {
+		status: "decided",
+		add: ["p2"],
+		note: "crash behind a particular package, syntax or sequence",
+		evidence
+	};
+	else verdict = {
+		status: "decided",
+		add: ["p3"],
+		note: "crash behind a specific platform, host or experimental flag",
+		evidence
+	};
+	const argues = answers.noul("argues_priority");
+	if (argues !== void 0) evidence[BUG_EVIDENCE_LABELS.argues_priority] = Number(argues.toFixed(2));
+	if (ctx.flags.priorityWords || (argues ?? 0) >= t.arguesPriority) verdict = {
+		...verdict,
+		forceSuggest: "the report argues its own priority"
+	};
+	return verdict;
+}
 function decideFeature(answers, ctx) {
 	const t = ctx.config.thresholds;
 	const evidence = {};
@@ -972,12 +1055,17 @@ const priority = defineCheck({
 		"p3"
 	] },
 	questions(ctx) {
+		const panic = ctx.flags.isPanic ? panicQuestions : {};
 		switch (ctx.kind) {
-			case "bug": return bugQuestions;
+			case "bug": return {
+				...bugQuestions,
+				...panic
+			};
 			case "feature": return featureQuestions;
 			case "unknown": return {
 				...bugQuestions,
-				...featureQuestions
+				...featureQuestions,
+				...panic
 			};
 			default: return null;
 		}
@@ -986,7 +1074,7 @@ const priority = defineCheck({
 		let verdict;
 		switch (ctx.kind) {
 			case "bug":
-				verdict = decideBug(answers, ctx);
+				verdict = ctx.flags.isPanic ? decidePanic(answers, ctx) : decideBug(answers, ctx);
 				break;
 			case "feature":
 				verdict = decideFeature(answers, ctx);
@@ -1303,6 +1391,9 @@ const DEFAULT_THRESHOLDS = {
 	reproRunnableNo: .2,
 	reproOk: 2.25,
 	reproConfidence: .7,
+	panicReachP1: 1.5,
+	panicReachP2: .5,
+	panicConfidence: .35,
 	usefulnessP2: 1,
 	workaroundLabel: .85,
 	arguesPriority: .6,
@@ -2128,6 +2219,7 @@ const CAPS = {
 };
 /** ~10k tokens; well under the 32k state budget even with every question attached. */
 const STATE_BUDGET = 4e4;
+const PANIC_RE = /panicked at|rolldown panicked|\bSIGSEGV\b|\bSIGBUS\b|\bsegmentation fault\b|\bbus error\b/i;
 const PRIORITY_WORDS_RE = /\b(p[0-3]|urgent(ly)?|blocker|top priority|highest priority|asap|please prioriti[sz]e|show[- ]?stopper)\b/i;
 function buildState(issue, parsed, kind) {
 	const sections = {};
@@ -2167,6 +2259,7 @@ function buildState(issue, parsed, kind) {
 			templateFollowed: parsed.template !== "none" && parsed.requiredMissing.length === 0,
 			runnableLinks,
 			replInvalid: runnableLinks.length === 0 && parsed.links.some((l) => l.kind === "repl" && !l.ok),
+			isPanic: parsed.template === "panic" || Boolean(parsed.sections.panic_message) || PANIC_RE.test(`${issue.title}\n${issue.body}`),
 			truncated
 		}
 	};
