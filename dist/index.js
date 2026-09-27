@@ -292,14 +292,14 @@ const redactKey = (value) => {
 	const tail = secret && secret.length > 8 ? secret.slice(-4) : "";
 	return `${scheme ? `${scheme} ` : ""}***${tail}`;
 };
-const redact = (name, value) => {
+const redact$1 = (name, value) => {
 	const lower = name.toLowerCase();
 	if (KEY_HEADERS.has(lower)) return redactKey(value);
 	if (OPAQUE_HEADERS.has(lower)) return "***";
 	return value;
 };
 /** Copy headers with known credential values redacted. */
-const redactHeaders = (headers) => Object.fromEntries(Object.entries(headers).map(([name, value]) => [name, redact(name, value)]));
+const redactHeaders = (headers) => Object.fromEntries(Object.entries(headers).map(([name, value]) => [name, redact$1(name, value)]));
 /**
 * Create a yes/no question with optional descriptions for either outcome.
 *
@@ -1502,12 +1502,18 @@ function resolveConfig(raw = {}) {
 //#endregion
 //#region src/core/errors.ts
 const MAX_LENGTH = 400;
+const BEARER_RE = /\bBearer\s+\S+/gi;
+const LONG_TOKEN_RE = /\b[A-Za-z0-9_-]{32,}\b/g;
+function redact(message) {
+	return message.replace(BEARER_RE, "Bearer [redacted]").replace(LONG_TOKEN_RE, "[redacted]");
+}
 const HTML_RE = /<(?:!doctype|html)\b/i;
 const STATUS_RE = /^\s*(\d{3})\b/;
 const TITLE_RE = /<title[^>]*>([^<]*)<\/title>/i;
 const RAY_RE = /Ray ID:\s*<strong[^>]*>([0-9a-f]+)</i;
 function truncate(message) {
-	return message.length > MAX_LENGTH ? `${message.slice(0, MAX_LENGTH)}…` : message;
+	const safe = redact(message);
+	return safe.length > MAX_LENGTH ? `${safe.slice(0, MAX_LENGTH)}…` : safe;
 }
 /**
 * One line for any error, with HTML error pages summarized rather than dumped.

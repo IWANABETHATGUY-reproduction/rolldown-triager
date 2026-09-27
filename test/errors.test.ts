@@ -40,7 +40,9 @@ describe("formatError", () => {
   });
 
   it("truncates a long non-HTML message", () => {
-    const line = formatError(new Error("x".repeat(900)));
+    // Words, not one long run: a single 900-character token is a credential
+    // shape and is redacted before truncation ever applies.
+    const line = formatError(new Error("failed to reach the model. ".repeat(60)));
     expect(line).toHaveLength(401);
     expect(line.endsWith("…")).toBe(true);
   });
@@ -53,5 +55,29 @@ describe("formatError", () => {
     const line = formatError(new Error("502 <html><body>bad gateway</body></html>"));
     expect(line).toContain("502");
     expect(line).toContain("HTML error page");
+  });
+});
+
+describe("formatError redaction", () => {
+  // typesafe-ai/typesafe-sdk-js#14: a key with a trailing newline is rejected
+  // by Headers.append, and the SDK wraps that with the key in the message.
+  const key = `api_${"k".repeat(103)}`;
+
+  it("redacts a key echoed by the SDK", () => {
+    const line = formatError(
+      new Error(`Headers.append: "Bearer ${key}" is an invalid header value.`),
+    );
+    expect(line).not.toContain(key);
+    expect(line).toContain("[redacted]");
+  });
+
+  it("redacts a bare long token anywhere in the message", () => {
+    expect(formatError(new Error(`connect failed for ${key}`))).not.toContain(key);
+  });
+
+  it("leaves ordinary messages readable", () => {
+    expect(formatError(new Error("`typesafe-api-key` is required"))).toBe(
+      "`typesafe-api-key` is required",
+    );
   });
 });
