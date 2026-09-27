@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # SHA-pinned actions never update themselves; this is what keeps the pins from
+  # going stale, which is the cost of pinning.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    # Wait before proposing a release, so a compromised or yanked version is
+    # withdrawn before it reaches a PR here.
+    # `github-actions` supports only `default-days`; the semver keys below are
+    # rejected for this ecosystem.
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3

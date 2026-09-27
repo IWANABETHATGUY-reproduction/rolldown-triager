@@ -21,11 +21,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # The push below authenticates explicitly, so the token does not need
+          # to sit in .git/config for the whole job.
+          persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      # No dependency cache here on purpose: this job publishes the artifact the
+      # action executes, and a restorable cache is a path into that artifact.
+      # Omitting `cache` is not enough — `package-manager-cache` defaults to
+      # true and our `packageManager` field turns caching on by itself.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
@@ -35,6 +42,7 @@ jobs:
       - name: Commit the bundle and move the tag onto it
         env:
           TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name  'github-actions[bot]'
@@ -42,4 +50,6 @@ jobs:
           git add -f dist/index.js
           git commit -m "build: bundle for $TAG"
           git tag -f "$TAG"
-          git push --force origin "refs/tags/$TAG"
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/tags/$TAG"

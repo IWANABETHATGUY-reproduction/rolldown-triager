@@ -1,0 +1,24 @@
+# Same check rolldown runs: oxc's security action audits workflow permissions,
+# unpinned third-party actions, and injection-prone `${{ }}` in run blocks.
+name: Security Analysis
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [master]
+    paths: [".github/workflows/**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'master' }}
+
+jobs:
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: oxc-project/security-action@2ac862d109c9728f5bf439d249b69f68905a5de4 # v1.0.8
