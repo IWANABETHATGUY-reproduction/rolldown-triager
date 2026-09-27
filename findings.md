@@ -34,7 +34,7 @@ Found **12 actionable issues** across the project. The first two risk overwritin
 
 8. 🟡 **[P2] Non-reproduction URLs bypass reproduction assessment** — [links.ts:66](/Users/victor/Documents/rolldown-rs/rolldown-triager/src/core/links.ts:66)
    `https://codesandbox.io/pricing` and bare `https://vite.new` both count as runnable reproductions and suppress model assessment. The latter [opens a starter template](https://vite.new/). Require project-specific paths and distinguish starter/reference links from supplied reproductions.
-   **Fixed in part** — CodeSandbox now requires a project path (`/s/`, `/p/`, `/embed/`, `/devbox/`, `/sandbox/`), so `codesandbox.io/pricing` no longer counts. A bare `vite.new` is **deliberately still accepted**: for rolldown#10938 opening it *is* the reproduction, and rejecting it would regress a recorded fixture. (Bare `stackblitz.com` was already rejected before this review.)
+   **Fixed in part** — CodeSandbox now requires a project path (`/s/`, `/p/`, `/embed/`, `/devbox/`, `/sandbox/`), so `codesandbox.io/pricing` no longer counts. A bare `vite.new` is **deliberately still accepted**: for rolldown#10938 opening it _is_ the reproduction, and rejecting it would regress a recorded fixture. (Bare `stackblitz.com` was already rejected before this review.)
 
 9. ✅ **[P2] Comment failures cannot recover through ordinary reruns** — [runner.ts:243](/Users/victor/Documents/rolldown-rs/rolldown-triager/src/core/runner.ts:243)
    Labels—including removal of `needs-triage`—are committed before comment delivery. If posting fails, rerunning immediately returns `already-triaged`, leaving the required comment missing. I reproduced this with a simulated API failure. Keep incomplete comment delivery retryable.

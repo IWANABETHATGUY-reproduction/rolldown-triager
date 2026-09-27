@@ -8,7 +8,7 @@ import { resolveConfig } from "../src/core/config.ts";
 import { extractReproLinks } from "../src/core/links.ts";
 import { decodeReplUrl, summarizeRepl } from "../src/core/repl.ts";
 import type { Report } from "../src/core/types.ts";
-import { answers, ctx, flags, issue, scoreAnswer } from "./support.ts";
+import { answers, ctx, flags, scoreAnswer } from "./support.ts";
 
 // Fixes for the twelve findings of the 2026-09-26 review. Each test names the
 // behaviour that was wrong, so a regression says what it broke.
