@@ -4,6 +4,7 @@ import {
   ConfigError,
   DEFAULT_MODEL,
   parseModes,
+  resolveApiKey,
   resolveConfig,
   ROLLDOWN_LABELS,
 } from "../src/core/config.ts";
@@ -52,5 +53,39 @@ describe("resolveConfig", () => {
     expect(() => resolveConfig({ comment: "sometimes" })).toThrow("comment");
     expect(() => parseModes("priority=maybe")).toThrow("check=apply|suggest|off");
     expect(() => parseModes("priority")).toThrow(ConfigError);
+  });
+});
+
+describe("resolveApiKey", () => {
+  const src = "`typesafe-api-key`";
+
+  it("accepts a key and strips surrounding whitespace", () => {
+    // The trailing newline `gh secret set` adds when reading from a file.
+    expect(resolveApiKey("api_abc123\n", src)).toBe("api_abc123");
+    expect(resolveApiKey("  api_abc123  ", src)).toBe("api_abc123");
+  });
+
+  it("refuses a missing or blank key", () => {
+    for (const raw of [undefined, "", "   ", "\n"]) {
+      expect(() => resolveApiKey(raw, src)).toThrow(ConfigError);
+      expect(() => resolveApiKey(raw, src)).toThrow("is required");
+    }
+  });
+
+  it("refuses a key with interior whitespace, naming the likely cause", () => {
+    // Not sendable as a header. The SDK reacts by putting the whole key in an
+    // error message and retrying it, so this has to fail before the SDK sees it.
+    expect(() => resolveApiKey("api_abc\n123", src)).toThrow(/trailing newline/);
+    expect(() => resolveApiKey("api abc", src)).toThrow(/whitespace/);
+  });
+
+  it("never puts the key in the error it throws", () => {
+    const key = `api_${"k".repeat(103)}\nx`;
+    try {
+      resolveApiKey(key, src);
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect((e as Error).message).not.toContain("kkk");
+    }
   });
 });

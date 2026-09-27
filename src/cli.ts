@@ -5,7 +5,7 @@ import { parseArgs } from "node:util";
 
 import { checks } from "./checks/index.ts";
 import { renderComment, renderLine } from "./core/comment.ts";
-import { ConfigError, resolveConfig } from "./core/config.ts";
+import { ConfigError, resolveApiKey, resolveConfig } from "./core/config.ts";
 import { formatError } from "./core/errors.ts";
 import { createGitHubClient, type IssueClient } from "./core/github.ts";
 import { createRecordedJev, createTypeSafeJev, type JevClient } from "./core/jev.ts";
@@ -62,9 +62,10 @@ function githubToken(): string {
 }
 
 function jevKey(): string {
-  const key = process.env.TYPESAFE_API_KEY ?? process.env.JEV_KEY;
-  if (!key) throw new Error("no TypeSafe key: set TYPESAFE_API_KEY (or JEV_KEY in .env)");
-  return key;
+  return resolveApiKey(
+    process.env.TYPESAFE_API_KEY ?? process.env.JEV_KEY,
+    "a TypeSafe key (TYPESAFE_API_KEY, or JEV_KEY in .env)",
+  );
 }
 
 function issueNumbers(): number[] {

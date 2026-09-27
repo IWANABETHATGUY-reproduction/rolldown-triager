@@ -2,7 +2,7 @@ import { appendFileSync } from "node:fs";
 
 import { checks } from "./checks/index.ts";
 import { renderSummary } from "./core/comment.ts";
-import { ConfigError, resolveConfig } from "./core/config.ts";
+import { ConfigError, resolveApiKey, resolveConfig } from "./core/config.ts";
 import { formatError } from "./core/errors.ts";
 import { createGitHubClient } from "./core/github.ts";
 import { PRIORITY_SLOTS, type ResolvedConfig } from "./core/types.ts";
@@ -44,8 +44,7 @@ function priorityOutput(report: Report, labels: ResolvedConfig["labels"]): strin
 }
 
 async function main(): Promise<void> {
-  const apiKey = input("typesafe-api-key");
-  if (!apiKey) throw new ConfigError("`typesafe-api-key` is required");
+  const apiKey = resolveApiKey(input("typesafe-api-key"), "`typesafe-api-key`");
   const token = input("token") || (process.env.GITHUB_TOKEN ?? "");
   if (!token) throw new ConfigError("`token` is required");
   const repo = input("repository") || (process.env.GITHUB_REPOSITORY ?? "");
