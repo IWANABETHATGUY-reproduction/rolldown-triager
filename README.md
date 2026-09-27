@@ -41,7 +41,7 @@ click, whereas one that was never applied is invisible.
 # .github/workflows/triage.yml — see examples/rolldown-triage.yml for the full file
 on:
   issues:
-    types: [labeled] # not `opened`: templates add needs-triage a second later
+    types: [opened, labeled] # `labeled` for templated issues, `opened` for blank ones
 jobs:
   triage:
     if: github.event.label.name == 'needs-triage'

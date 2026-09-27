@@ -1,16 +1,26 @@
 # Drop into rolldown/rolldown as .github/workflows/triage.yml.
 #
-# Triggers on the `needs-triage` label rather than `opened`: the issue
-# templates add that label about a second after creation, so `opened` would run
-# twice, and re-adding the label is how a maintainer re-runs the bot. Only
-# people with triage permission can add labels, so no extra gate is needed.
+# Two entry points, because issues arrive two ways:
+#
+#   * Through a template, which applies `needs-triage` itself. That fires
+#     `labeled`. Re-adding the label by hand is also how a maintainer re-runs
+#     the bot, and only people with triage permission can add labels, so that
+#     path needs no extra gate.
+#   * Blank — `blank_issues_enabled: true`, so those arrive with no labels at
+#     all and nothing would ever put them in the triage queue. The `opened`
+#     arm adds the label and triages in the same job, because a label written
+#     with GITHUB_TOKEN does not trigger workflows: splitting this into a
+#     separate labelling workflow would add the label and leave the bot idle.
+#
+# The `opened` arm is guarded on the label being absent, so a templated issue
+# takes the `labeled` path only and is never triaged twice.
 name: Issue Triage
 
 permissions: {}
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.issue.number }}
@@ -18,12 +28,23 @@ concurrency:
 
 jobs:
   triage:
-    if: github.repository == 'rolldown/rolldown' && github.event.label.name == 'needs-triage'
+    if: >-
+      github.repository == 'rolldown/rolldown' &&
+      ((github.event.action == 'labeled' && github.event.label.name == 'needs-triage') ||
+       (github.event.action == 'opened' &&
+        !contains(github.event.issue.labels.*.name, 'needs-triage')))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       issues: write
     steps:
+      - if: github.event.action == 'opened'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: gh issue edit "$ISSUE_NUMBER" --add-label needs-triage
+
       - uses: IWANABETHATGUY-reproduction/rolldown-triager@61acb1d2aab0a541cf6a0977970b1d96130955fb # v0.8.1
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
