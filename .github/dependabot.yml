@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # SHA-pinned actions never update themselves; this is what keeps the pins from
+  # going stale, which is the cost of pinning.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
