@@ -32,4 +32,4 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       # Actions run the committed bundle; make sure it matches the sources.
-      - run: pnpm check:dist
+      - run: pnpm build

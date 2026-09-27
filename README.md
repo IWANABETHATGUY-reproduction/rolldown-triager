@@ -131,7 +131,7 @@ pnpm cli state --issue N                       # parsed sections, links, flags, 
 pnpm cli run --issue N [--apply]               # dry run by default; --apply writes labels + comment
 pnpm cli record --issue N …                    # refresh test fixtures (needs JEV_KEY / TYPESAFE_API_KEY)
 pnpm cli eval --since 2026-03-01 [--sweep]     # agreement metrics; --sweep tries threshold grids
-pnpm build && pnpm check:dist                  # the Action runs the committed dist/index.js
+pnpm build                                     # dist/index.js; built again and tagged by release.yml
 ```
 
 Put the key in `.env` as `JEV_KEY` (or `TYPESAFE_API_KEY`). Changing question text or sanitizing changes the

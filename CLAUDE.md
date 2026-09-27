@@ -17,7 +17,6 @@ pnpm typecheck                     # tsgo --noEmit; erasableSyntaxOnly is on (se
 pnpm test                          # vitest, fully offline (recorded answers in test/fixtures/answers)
 pnpm test -- test/priority.test.ts # one file;  pnpm test -- -t "unsure band"  for one test name
 pnpm build                         # node build.ts → dist/index.js (rolldown, everything bundled but node builtins)
-pnpm check:dist                    # build + git diff --exit-code -- dist   (CI runs this; commit dist/)
 pnpm cli state|run|record|eval ... # loads .env (JEV_KEY or TYPESAFE_API_KEY); GitHub token from gh auth
 ```
 
@@ -95,7 +94,9 @@ what maintainers actually label (numbers in README and in `DEFAULT_MODES`' comme
 
 - Node runs `src/**/*.ts` with type stripping, so no enums, namespaces, or constructor parameter properties
   (`erasableSyntaxOnly` makes typecheck catch it); imports use `.ts` extensions.
-- `dist/index.js` is what the Action executes. Rebuild and commit it with any source change.
+- `dist/index.js` is what the Action executes, but it is **not** on `master` — `.github/workflows/release.yml`
+  builds it when a `v*` tag is pushed, commits it, and moves the tag onto that commit. So a tag is runnable
+  and `master` is not; never point a workflow at a branch. `pnpm build` locally is for testing only.
 - The consumer workflow triggers on `labeled` == `needs-triage`, not `opened` (templates add the label ~1 s
   after creation, so `opened` double-fires; re-adding the label is the re-run mechanism).
 - `GITHUB_TOKEN` writes don't trigger rolldown's other workflows; the comment text therefore includes the

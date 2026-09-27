@@ -6,7 +6,6 @@
   "type": "module",
   "scripts": {
     "build": "node build.ts",
-    "check:dist": "pnpm build && git diff --exit-code -- dist",
     "cli": "node --env-file-if-exists=.env src/cli.ts",
     "fmt": "oxlint . --fix && oxfmt .",
     "lint": "oxlint . && oxfmt --check .",
