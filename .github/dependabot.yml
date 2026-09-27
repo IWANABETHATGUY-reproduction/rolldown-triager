@@ -8,6 +8,13 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+    # Wait before proposing a release, so a compromised or yanked version is
+    # withdrawn before it reaches a PR here.
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
 
   - package-ecosystem: npm
     directory: /
@@ -15,3 +22,8 @@ updates:
       interval: weekly
     commit-message:
       prefix: chore
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
