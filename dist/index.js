@@ -1420,6 +1420,22 @@ const DEFAULT_THRESHOLDS = {
 	arguesPriority: .6,
 	kindConfidence: .7
 };
+/**
+* Trims the key and refuses one that could not be sent as a header.
+*
+* A trailing newline is the common case — `gh secret set` reading from a file
+* adds one — and the SDK reacts by wrapping the *whole key* into an
+* APIConnectionError message (typesafe-ai/typesafe-sdk-js#14), then retrying
+* it. `formatError` redacts that now, but the request never leaves the process
+* either way, so failing here turns a confusing 403-after-retries into a
+* configuration error that names the problem.
+*/
+function resolveApiKey(raw, source) {
+	const key = (raw ?? "").trim();
+	if (!key) throw new ConfigError(`${source} is required`);
+	if (/\s/.test(key)) throw new ConfigError(`${source} contains whitespace, so it cannot be sent as a header. Check for a trailing newline — \`gh secret set\` from a file adds one; pipe the value instead.`);
+	return key;
+}
 const DEFAULT_CHECKS = ["reproduction", "priority"];
 /**
 * Measured on rolldown issues triaged since 2026-03 (`pnpm cli eval`):
@@ -2535,8 +2551,7 @@ function priorityOutput(report, labels) {
 	return "";
 }
 async function main() {
-	const apiKey = input("typesafe-api-key");
-	if (!apiKey) throw new ConfigError("`typesafe-api-key` is required");
+	const apiKey = resolveApiKey(input("typesafe-api-key"), "`typesafe-api-key`");
 	const token = input("token") || (process.env.GITHUB_TOKEN ?? "");
 	if (!token) throw new ConfigError("`token` is required");
 	const repo = input("repository") || (process.env.GITHUB_REPOSITORY ?? "");

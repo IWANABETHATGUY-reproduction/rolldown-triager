@@ -40,6 +40,28 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
 
 /** Pinned: the `jev-latest` alias moves silently and thresholds are tuned per version. */
 export const DEFAULT_MODEL = "jev-1.13.0";
+/**
+ * Trims the key and refuses one that could not be sent as a header.
+ *
+ * A trailing newline is the common case — `gh secret set` reading from a file
+ * adds one — and the SDK reacts by wrapping the *whole key* into an
+ * APIConnectionError message (typesafe-ai/typesafe-sdk-js#14), then retrying
+ * it. `formatError` redacts that now, but the request never leaves the process
+ * either way, so failing here turns a confusing 403-after-retries into a
+ * configuration error that names the problem.
+ */
+export function resolveApiKey(raw: string | undefined, source: string): string {
+  const key = (raw ?? "").trim();
+  if (!key) throw new ConfigError(`${source} is required`);
+  if (/\s/.test(key)) {
+    throw new ConfigError(
+      `${source} contains whitespace, so it cannot be sent as a header. ` +
+        "Check for a trailing newline — `gh secret set` from a file adds one; pipe the value instead.",
+    );
+  }
+  return key;
+}
+
 export const DEFAULT_CHECKS = ["reproduction", "priority"];
 /**
  * Measured on rolldown issues triaged since 2026-03 (`pnpm cli eval`):
