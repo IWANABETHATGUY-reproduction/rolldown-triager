@@ -88,13 +88,23 @@ function classify(url: string): ReproLink | null {
     const [owner, repo, section] = segments;
     if (!owner || !repo) return null;
     if (REFERENCE_OWNERS.has(owner.toLowerCase()) || STARTER_RE.test(repo)) return null;
-    if (section === undefined || section === "tree" || section === "archive") {
+    if (
+      section === undefined ||
+      section === "tree" ||
+      section === "archive" ||
+      // A file in someone else's repo names a project you can clone *and* the
+      // part that matters — often a workflow or config that reproduces it.
+      // Rolldown's own source is already excluded by owner above, which is what
+      // grouping `blob` with `issues` was really guarding against.
+      section === "blob"
+    ) {
       return { kind: "github_repo", url, ok: true };
     }
     if (section === "releases" && path.includes("/download/")) {
       return { kind: "github_repo", url, ok: true };
     }
-    // issues, pull, blob, discussions, commit, compare, actions, ... are references.
+    // issues, pull, discussions, commit, compare, actions, ... are references:
+    // they are evidence about a problem, not a project that reproduces it.
     return null;
   }
 
