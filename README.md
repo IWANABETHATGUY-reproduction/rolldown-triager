@@ -48,7 +48,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: IWANABETHATGUY/rolldown-triager@612d56f31673c91d50430a840a38a4bc2f1c172f # v0.9.0
+      - uses: IWANABETHATGUY/rolldown-triager@0ae1023269a92555b6d7a2acb65dacf689c9ebe4 # v0.9.1
         with:
           typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
           modes: priority=suggest,reproduction=suggest # shadow mode first
