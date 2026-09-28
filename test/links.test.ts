@@ -52,7 +52,7 @@ describe("extractReproLinks", () => {
     ]);
   });
 
-  it("treats github repos as reproductions but issue/pr/blob links as references", () => {
+  it("treats github repos and files as reproductions but issue/pr links as references", () => {
     const body = [
       "https://github.com/Dragonite24/rolldown-umd-amd-repro",
       "https://github.com/medz/rolldown-nitro-dev-tla-cycle-repro/tree/main/src",
@@ -68,6 +68,9 @@ describe("extractReproLinks", () => {
     expect(links.map((l) => l.url)).toEqual([
       "https://github.com/Dragonite24/rolldown-umd-amd-repro",
       "https://github.com/medz/rolldown-nitro-dev-tla-cycle-repro/tree/main/src",
+      // A file in a third-party repo names a clonable project; only rolldown's
+      // own source is filtered, and that happens by owner.
+      "https://github.com/someone/thing/blob/main/README.md",
       "https://github.com/someone/thing/releases/download/v1/repro.zip",
     ]);
     expect(links.every((l) => l.kind === "github_repo" && l.ok)).toBe(true);
@@ -99,5 +102,29 @@ describe("extractReproLinks", () => {
     ]);
     expect(extractReproLinks(loadIssue(10798).body)).toEqual([]);
     expect(extractReproLinks(loadIssue(10812).body)).toEqual([]);
+  });
+});
+
+describe("a file in someone else's repo is a reproduction", () => {
+  // rolldown#10970-shaped: the reporter linked the workflow that fails rather
+  // than a repo root or a REPL. It is the same effort and the same clonable
+  // project, so rejecting it sent an issue with a reproduction to the model.
+  it("accepts a blob link outside the reference owners", () => {
+    const [link] = extractReproLinks(
+      "https://github.com/mikicvi/pihole-switcher/blob/master/.github/workflows/docker-publish.yaml",
+    );
+    expect(link).toMatchObject({ kind: "github_repo", ok: true });
+  });
+
+  it("still rejects rolldown's own source, and links that are only evidence", () => {
+    for (const u of [
+      "https://github.com/rolldown/rolldown/blob/main/crates/rolldown/src/lib.rs",
+      "https://github.com/someone/app/issues/12",
+      "https://github.com/someone/app/pull/12",
+      "https://github.com/someone/app/commit/abc1234",
+      "https://github.com/someone/app/actions/runs/123",
+    ]) {
+      expect(extractReproLinks(u)).toEqual([]);
+    }
   });
 });
